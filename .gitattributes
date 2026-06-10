@@ -4,4 +4,7 @@
 *.yaml text eol=lf linguist-language=YAML
 *.md text eol=lf
 *.ps1 text eol=crlf
-
+*.toml text eol=lf linguist-language=TOML
+*.webmanifest text eol=lf linguist-language=JSON
+store/capacitor/dist/** linguist-generated=true
+store/pwa/manifest.webmanifest linguist-documentation=true

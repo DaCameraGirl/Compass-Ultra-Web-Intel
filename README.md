@@ -1,52 +1,121 @@
-# Compass Ultra Website Intelligence
+<div align="center">
 
-![Snowflake](https://img.shields.io/badge/Snowflake-Data%20Warehouse-29B5E8)
-![dbt](https://img.shields.io/badge/dbt-Transformations-FF694B)
-![Fivetran Ready](https://img.shields.io/badge/Fivetran-Ready%20Ingestion-1D4ED8)
-![Streamlit](https://img.shields.io/badge/Streamlit-Query%20App-FF4B4B)
-![Compass Ultra](https://img.shields.io/badge/Compass%20Ultra-Website%20Intelligence-235D53)
+# 🧭 Compass Ultra Website Intelligence
 
-Compass Ultra Website Intelligence is a Snowflake + dbt + Streamlit pipeline for Compass Ultra's early-stage growth work: pull public website data, model it, and query it for market, competitor, and prospect signals before there are customers.
+### Ship faster. Break nothing. Find the market before the market finds you.
 
-The core workflow does not need Stripe, Auth0, Railway, Vercel, or Fivetran. Those integrations are wired as optional sources for later.
+![Compass Ultra](https://img.shields.io/badge/Compass%20Ultra-Web%20Intel-07090E?style=for-the-badge)
+![Streamlit](https://img.shields.io/badge/Streamlit-Live%20App-58A6FF?style=for-the-badge)
+![Snowflake](https://img.shields.io/badge/Snowflake-Warehouse-29B5E8?style=for-the-badge)
+![dbt](https://img.shields.io/badge/dbt-Models%20%2B%20Tests-FF694B?style=for-the-badge)
+![Tavily](https://img.shields.io/badge/Tavily-Discovery-3FB950?style=for-the-badge)
 
-## Stack
+![Python](https://img.shields.io/badge/Python-Crawler%20%2B%20App-3776AB?style=flat-square&logo=python&logoColor=white)
+![SQL](https://img.shields.io/badge/SQL-dbt%20Marts-336791?style=flat-square)
+![PowerShell](https://img.shields.io/badge/PowerShell-Windows%20Launchers-5391FE?style=flat-square&logo=powershell&logoColor=white)
+![YAML](https://img.shields.io/badge/YAML-dbt%20Profiles-CB171E?style=flat-square&logo=yaml&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-Store%20Wrapper-3178C6?style=flat-square&logo=typescript&logoColor=white)
 
-- **Snowflake**: warehouse for crawled website pages, optional Compass backend data, optional Stripe/Vercel data, and optional Fivetran metadata
-- **dbt Core + dbt Snowflake**: staging models, marts, tests, and query-ready analytics tables
-- **Fivetran-ready ingestion**: Fivetran API metadata loader is included for connector health and destination visibility
-- **Python**: website crawler, API ingestion jobs, Snowflake loading, validation scripts
-- **Streamlit**: local query app for website intelligence and prospect/domain scoring
-- **Optional LLM answers**: sourced answers over retrieved website pages with Anthropic, OpenAI, OpenRouter, or DeepSeek keys
+**A live company-intelligence workbench for Compass Ultra's release-readiness market.**
 
-## Architecture
+</div>
 
-```text
-Public websites
-  -> Python crawler
-  -> Snowflake RAW_WEBSITE_INTEL.PAGES
-  -> dbt staging and marts
-  -> Streamlit query app
+---
 
-Optional later sources
-  -> Fivetran API metadata
-  -> Compass Ultra Railway/Postgres backend
-  -> Stripe billing objects
-  -> Vercel deployment history
-  -> Snowflake + dbt analytics marts
+## ✨ What This Is
+
+Compass Ultra Web Intel turns a company name or website into a live research run:
+
+1. 🔎 resolve the company or source website
+2. 🌐 discover related public pages with Tavily
+3. 🕷️ crawl useful website content
+4. ❄️ load raw pages into Snowflake
+5. 🧱 rebuild dbt marts and tests
+6. 📊 show prospect, competitor, and market signals in Streamlit
+7. 🤖 optionally generate sourced AI summaries with Anthropic, OpenAI, OpenRouter, or DeepSeek
+
+The product is built for the same Compass Ultra world as the main app: feature flags, release gates, stale flag debt, approval workflows, rollback evidence, CAB handoffs, and safe production change.
+
+---
+
+## 🖥️ Live App Workflow
+
+Open the local app:
+
+```powershell
+.\Start-CompassUltraWebIntel.ps1
 ```
 
-## What It Does Now
+Or run Streamlit directly:
 
-- Discovers related websites from a source site/feed using Tavily Search
-- Crawls discovered websites or URLs you pass on the command line
-- Extracts titles, descriptions, headings, visible text, links, and crawl metadata
-- Loads pages into Snowflake under `RAW_WEBSITE_INTEL`
-- Uses dbt to build a website query index, domain scorecard, and Compass-fit signal tables
-- Runs a Streamlit query app over the dbt marts
-- Uses Anthropic, OpenAI, OpenRouter, or DeepSeek for sourced answers when a supported LLM key is configured
+```powershell
+streamlit run app\streamlit_app.py
+```
 
-## Core Setup
+In the app:
+
+1. Type a company name or website into **Analyze company or website**.
+2. Pick how many pages to crawl per discovered site.
+3. Click the full-width **Run Analysis** button.
+4. Watch the live discovery, crawl, Snowflake load, and dbt build logs.
+5. Review the refreshed domain table and ranked website signals.
+
+The app uses one main input. That input drives both the live run and the focused results below it.
+
+---
+
+## 🧠 Signal Engine
+
+The active MVP scores websites for Compass Ultra fit using signals like:
+
+- 🚩 feature flag mentions
+- 🚀 release, deploy, rollback, canary, and CAB language
+- 🛡️ audit, compliance, SOC 2, change management, and review terms
+- 🔁 workflow terms like Slack, Jira, GitHub, CI/CD, and runbooks
+- 🧹 stale flag, flag debt, ownership, approval, and cleanup language
+
+Output tables:
+
+- `ANALYTICS.MART_WEBSITE_QUERY_INDEX`
+- `ANALYTICS.MART_PROSPECT_ACCOUNTS`
+- `ANALYTICS.FCT_WEBSITE_SIGNALS`
+
+---
+
+## 🧱 Stack
+
+| Layer | Tool | Job |
+| --- | --- | --- |
+| 🖥️ App | Streamlit | Live company runner and query UI |
+| 🐍 Ingestion | Python | Discovery, crawling, parsing, Snowflake loading |
+| ❄️ Warehouse | Snowflake | Raw public pages and analytics outputs |
+| 🧱 Modeling | dbt Core + dbt Snowflake | Staging, marts, tests |
+| 🔎 Discovery | Tavily | Company lookup and related-site search |
+| 🤖 Optional AI | Anthropic, OpenAI, OpenRouter, DeepSeek | Sourced summaries over retrieved pages |
+| 🔌 Optional ops | Fivetran, Stripe, Vercel, Compass backend | Future operational intelligence sources |
+
+```text
+Company / website
+  -> Tavily discovery
+  -> Python crawler
+  -> Snowflake RAW_WEBSITE_INTEL.PAGES
+  -> dbt staging + marts
+  -> Streamlit Web Intel app
+```
+
+### 🧬 Language Bar
+
+GitHub's language bar is tuned with `.gitattributes` so it emphasizes the real product code:
+
+- 🐍 Python for the crawler, loaders, Streamlit app, and validation scripts
+- 🧱 SQL for dbt staging and mart models
+- 💻 PowerShell for Windows launchers
+- ⚙️ YAML/TOML for dbt, Streamlit, and config
+- 📦 TypeScript/HTML only for lightweight store-wrapper scaffolding
+
+---
+
+## ⚡ Quick Start
 
 ```powershell
 py -3.11 -m venv .venv
@@ -55,15 +124,9 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Fill `.env` with real Snowflake values. Do not commit `.env`.
+Fill `.env` with your real values. Never commit `.env`.
 
-Get Snowflake here:
-
-- New trial: https://signup.snowflake.com/
-- Login: https://app.snowflake.com/
-- Account ID help: https://docs.snowflake.com/en/user-guide/admin-account-identifier
-
-Validate:
+Validate configuration:
 
 ```powershell
 python scripts\validate_environment.py
@@ -75,7 +138,72 @@ Create the raw website table:
 python scripts\crawl_websites_to_snowflake.py --bootstrap-only
 ```
 
-Discover related websites from a source website:
+Run the app:
+
+```powershell
+streamlit run app\streamlit_app.py
+```
+
+---
+
+## 🔐 Keys
+
+Required for the live workflow:
+
+```text
+TAVILY_API_KEY
+SNOWFLAKE_ACCOUNT
+SNOWFLAKE_USER
+SNOWFLAKE_PASSWORD
+SNOWFLAKE_ROLE
+SNOWFLAKE_WAREHOUSE
+SNOWFLAKE_DATABASE
+```
+
+Optional AI answer providers:
+
+```text
+ANTHROPIC_API_KEY
+OPENROUTER_API_KEY
+OPENAI_API_KEY
+DEEPSEEK_API_KEY
+```
+
+Optional later sources:
+
+```text
+FIVETRAN_API_KEY
+FIVETRAN_API_SECRET
+DATABASE_URL
+STRIPE_SECRET_KEY
+VERCEL_TOKEN
+```
+
+See [GET_KEYS.md](GET_KEYS.md) for account/key guidance.
+
+---
+
+## 🧭 One-Command Refresh
+
+Run the default Compass Ultra seeded discovery:
+
+```powershell
+.\Run-WebsiteDiscovery.ps1
+```
+
+Run another source website:
+
+```powershell
+.\Run-WebsiteDiscovery.ps1 -SourceUrl https://www.example.com/ -MaxPages 5
+```
+
+That command discovers related websites, crawls them, loads Snowflake, rebuilds dbt, and opens the local app.
+
+---
+
+## 🧪 Manual Pipeline Commands
+
+Discover related websites:
 
 ```powershell
 python scripts\discover_websites.py --source-url https://www.example.com/
@@ -87,55 +215,44 @@ Crawl discovered websites into Snowflake:
 python scripts\crawl_websites_to_snowflake.py --urls-file targets\discovered_websites.txt --max-pages 25
 ```
 
-Load a crawler-safe JSON feed when a site blocks normal crawlers:
+Load a crawler-safe JSON feed:
 
 ```powershell
 python scripts\crawl_websites_to_snowflake.py --feed-file C:\path\to\crawler-feed.json --skip-urls-file
 ```
 
-Build the dbt website marts:
+Build dbt marts:
 
 ```powershell
 $env:DBT_PROFILES_DIR = (Get-Location).Path
 dbt build --select stg_web_pages fct_website_signals mart_prospect_accounts mart_website_query_index
 ```
 
-Run the query app:
+---
 
-```powershell
-streamlit run app\streamlit_app.py
-```
+## 🌍 Hosting
 
-On Windows, double-click the desktop shortcut named **Compass Ultra Web Intel** if it has been created. It runs `Start-CompassUltraWebIntel.ps1`.
+GitHub Pages is not enough for this app because it only serves static files. Compass Ultra Web Intel needs a Python/Streamlit runtime plus secrets for Snowflake and Tavily.
 
-In the app, enter a company name or website in **Analyze company or website**, then click the full-width **Run Analysis** button. That single input drives both the live analysis run and the focused results shown below. `TAVILY_API_KEY` is required for live discovery; direct website URLs only skip the company-name lookup step.
+Best free path:
 
-The first shortcut launch creates `.env` and installs dependencies. If `.env` is still blank, the app opens to a setup checklist instead of trying to connect to Snowflake. The repo includes `.streamlit/config.toml` to keep Streamlit's built-in toolbar minimal for local use.
+1. Push this repo to GitHub.
+2. Deploy it on **Streamlit Community Cloud**.
+3. Add secrets in Streamlit's secrets manager, not in GitHub.
+4. Share the Streamlit app URL.
 
-If Snowflake browser login is not enabled for the account, run `Set-SnowflakePassword.ps1` locally. It prompts for the Snowflake password and writes it only to `.env`.
+Before sharing publicly, add access control or disable unrestricted live runs so visitors cannot trigger Tavily, Snowflake, crawler, or AI usage without permission.
 
-## Useful Queries
+---
 
-Search the app for:
+## 🧰 Optional Data Sources
 
-- `release gates`
-- `stale flags`
-- `audit-ready`
-- `LaunchDarkly`
-- `rollback`
-- `change advisory`
-- `feature flag debt`
+These are wired for later, but not required for the active website-intelligence workflow:
 
-The app ranks pages and domains by Compass Ultra fit signals.
+- `scripts\compass_to_snowflake.py` - Compass backend, Stripe, and Vercel data
+- `scripts\fivetran_to_snowflake.py` - Fivetran connector and destination metadata
 
-## Optional Sources
-
-These are not required for the website-intelligence workflow.
-
-- `scripts\compass_to_snowflake.py`: loads Compass Ultra backend data from Railway/Postgres, Stripe billing, and Vercel deployments when those credentials are configured.
-- `scripts\fivetran_to_snowflake.py`: loads Fivetran group/connection metadata when Fivetran API credentials are configured.
-
-If your Compass backend `.env` already has `DATABASE_URL`, `STRIPE_SECRET_KEY`, or AI provider keys, set this in this repo's `.env` instead of copying secrets:
+If another local Compass backend `.env` already has useful values, point this repo to it:
 
 ```text
 COMPASS_BACKEND_ENV_FILE=C:\Users\enter\Compass-Ultra-Backend\.env
@@ -143,55 +260,31 @@ COMPASS_BACKEND_ENV_FILE=C:\Users\enter\Compass-Ultra-Backend\.env
 
 The scripts read values locally and never print secret values.
 
-## One-Command Discovery Refresh
+---
 
-On Windows, run:
-
-```powershell
-.\Run-WebsiteDiscovery.ps1
-```
-
-That discovers related websites from Compass Ultra by default, crawls them, loads Snowflake, rebuilds dbt, and opens the local app. To run another source website:
-
-```powershell
-.\Run-WebsiteDiscovery.ps1 -SourceUrl https://www.example.com/ -MaxPages 5
-```
-
-## Hosting
-
-This app needs a Python/Streamlit runtime, Snowflake credentials, and Tavily for live discovery. GitHub Pages is not enough because it only serves static files.
-
-Use Streamlit Community Cloud for a free public deployment from the GitHub repo. Put secrets in Streamlit's secrets manager, not in GitHub:
-
-- `TAVILY_API_KEY`
-- `SNOWFLAKE_ACCOUNT`
-- `SNOWFLAKE_USER`
-- `SNOWFLAKE_PASSWORD` or key-pair settings
-- `SNOWFLAKE_ROLE`
-- `SNOWFLAKE_WAREHOUSE`
-- `SNOWFLAKE_DATABASE`
-- optional AI provider keys
-
-Before sharing the app publicly, add access control or disable unrestricted live runs so visitors cannot trigger crawl/Snowflake/API usage without permission.
-
-## dbt Outputs
-
-- `ANALYTICS.MART_WEBSITE_QUERY_INDEX`
-- `ANALYTICS.MART_PROSPECT_ACCOUNTS`
-- `ANALYTICS.FCT_WEBSITE_SIGNALS`
-
-Optional operational marts are present for future customer/billing/deployment analysis, but the active MVP is website intelligence.
-
-## Store Packaging
+## 📦 Store Packaging
 
 Store-wrapper scaffolding lives in `store/`.
 
-- Android and iOS: `store/capacitor`
-- PWA manifest: `store/pwa/manifest.webmanifest`
-- Microsoft Store notes: `store/microsoft`
+- 📱 Android and iOS: `store/capacitor`
+- 🌐 PWA manifest: `store/pwa/manifest.webmanifest`
+- 🪟 Microsoft Store notes: `store/microsoft`
 
 Before a real store submission, host the app at a production HTTPS URL and set `COMPASS_WEB_INTEL_URL` for the Capacitor wrapper. Store submissions also require developer accounts, signing certificates, screenshots, privacy labels, and production icons.
 
-## More Detail
+---
 
-See [docs/TECH_STACK.md](docs/TECH_STACK.md) for how GitHub language detection differs from the actual product stack.
+## 📚 More Detail
+
+- [GET_KEYS.md](GET_KEYS.md) - accounts and API key setup
+- [docs/TECH_STACK.md](docs/TECH_STACK.md) - stack notes and GitHub language detection
+
+---
+
+<div align="center">
+
+### 🧭 Compass Ultra judges whether the release is safe.
+
+**Most flag platforms manage flags. Compass Ultra decides if the ship is ready.**
+
+</div>
