@@ -1,0 +1,8 @@
+https://www.compassultra.com/
+https://launchdarkly.com/
+https://www.getunleash.io/
+https://www.flagsmith.com/
+https://openfeature.dev/
+https://www.statsig.com/
+https://firebase.google.com/products/remote-config
+

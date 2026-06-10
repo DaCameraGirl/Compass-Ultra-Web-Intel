@@ -1,0 +1,23 @@
+{
+  "name": "compass-ultra-web-intel-store-wrapper",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cap:add:android": "capacitor add android",
+    "cap:add:ios": "capacitor add ios",
+    "cap:sync": "capacitor sync",
+    "cap:open:android": "capacitor open android",
+    "cap:open:ios": "capacitor open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
+}
+

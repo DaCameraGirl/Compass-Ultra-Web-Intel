@@ -1,0 +1,102 @@
+version: 2
+
+models:
+  - name: stg_fivetran_groups
+    columns:
+      - name: group_id
+        tests:
+          - not_null
+          - unique
+      - name: group_name
+        tests:
+          - not_null
+
+  - name: stg_fivetran_connections
+    columns:
+      - name: connection_id
+        tests:
+          - not_null
+          - unique
+      - name: group_id
+        tests:
+          - not_null
+      - name: health_state
+        tests:
+          - accepted_values:
+              values:
+                - healthy
+                - paused
+                - setup_issue
+                - delayed
+                - failing
+                - stale
+                - never_synced
+                - unknown
+
+  - name: fct_connection_health
+    columns:
+      - name: connection_id
+        tests:
+          - not_null
+          - unique
+      - name: health_state
+        tests:
+          - not_null
+
+  - name: fct_query_failures
+    columns:
+      - name: query_id
+        tests:
+          - not_null
+
+  - name: fct_warehouse_daily_cost
+    columns:
+      - name: usage_date
+        tests:
+          - not_null
+      - name: warehouse_name
+        tests:
+          - not_null
+
+  - name: mart_data_ops_overview
+    description: One-row operational summary used by the dashboard.
+
+  - name: stg_web_pages
+    columns:
+      - name: url
+        tests:
+          - not_null
+          - unique
+      - name: domain
+        tests:
+          - not_null
+
+  - name: fct_website_signals
+    columns:
+      - name: url
+        tests:
+          - not_null
+          - unique
+      - name: compass_fit_score
+        tests:
+          - not_null
+
+  - name: mart_prospect_accounts
+    description: Domain-level market and prospect signal rollup from crawled websites.
+    columns:
+      - name: domain
+        tests:
+          - not_null
+          - unique
+      - name: fit_tier
+        tests:
+          - accepted_values:
+              values: [high, medium, low, none]
+
+  - name: mart_website_query_index
+    description: Searchable page index used by the Compass Ultra website intelligence app.
+    columns:
+      - name: url
+        tests:
+          - not_null
+          - unique

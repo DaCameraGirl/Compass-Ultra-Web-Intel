@@ -1,0 +1,40 @@
+version: 2
+
+sources:
+  - name: fivetran_api
+    database: "{{ env_var('SNOWFLAKE_DATABASE') }}"
+    schema: "{{ env_var('SNOWFLAKE_RAW_SCHEMA', 'RAW_FIVETRAN_API') }}"
+    tables:
+      - name: GROUPS
+        columns:
+          - name: group_id
+            tests:
+              - not_null
+              - unique
+      - name: CONNECTIONS
+        columns:
+          - name: connection_id
+            tests:
+              - not_null
+              - unique
+
+  - name: snowflake_account_usage
+    database: SNOWFLAKE
+    schema: ACCOUNT_USAGE
+    tables:
+      - name: QUERY_HISTORY
+      - name: WAREHOUSE_METERING_HISTORY
+
+  - name: website_intel
+    database: "{{ env_var('SNOWFLAKE_DATABASE') }}"
+    schema: "{{ env_var('SNOWFLAKE_WEB_SCHEMA', 'RAW_WEBSITE_INTEL') }}"
+    tables:
+      - name: PAGES
+        columns:
+          - name: url
+            tests:
+              - not_null
+              - unique
+          - name: domain
+            tests:
+              - not_null

@@ -1,0 +1,27 @@
+name: data_ops_command_center
+version: "1.0.0"
+config-version: 2
+
+profile: data_ops_command_center
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+vars:
+  lookback_days: "{{ env_var('DBT_LOOKBACK_DAYS', 30) }}"
+  snowflake_credit_price_usd: "{{ env_var('SNOWFLAKE_CREDIT_PRICE_USD', '') }}"
+
+models:
+  data_ops_command_center:
+    staging:
+      +materialized: view
+      +schema: "{{ env_var('SNOWFLAKE_STAGING_SCHEMA', 'STAGING') }}"
+    marts:
+      +materialized: table
+      +schema: "{{ env_var('SNOWFLAKE_ANALYTICS_SCHEMA', 'ANALYTICS') }}"
+
