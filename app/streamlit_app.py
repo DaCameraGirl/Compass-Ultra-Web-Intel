@@ -223,7 +223,8 @@ def render_setup_screen(missing: list[str]) -> None:
             [
                 "python scripts\\validate_environment.py",
                 "python scripts\\crawl_websites_to_snowflake.py --bootstrap-only",
-                "python scripts\\crawl_websites_to_snowflake.py --urls-file targets\\market_websites.txt --max-pages 25",
+                "python scripts\\discover_websites.py --source-url https://www.compassultra.com/ --feed-file C:\\Users\\enter\\Compass-Ultra\\app\\public\\crawler-feed.json",
+                "python scripts\\crawl_websites_to_snowflake.py --urls-file targets\\discovered_websites.txt --max-pages 25",
                 "$env:DBT_PROFILES_DIR = (Get-Location).Path",
                 "dbt build --select stg_web_pages fct_website_signals mart_prospect_accounts mart_website_query_index",
             ]
@@ -239,7 +240,8 @@ def render_data_not_ready(error: Exception) -> None:
         "\n".join(
             [
                 "python scripts\\crawl_websites_to_snowflake.py --bootstrap-only",
-                "python scripts\\crawl_websites_to_snowflake.py --urls-file targets\\market_websites.txt --max-pages 25",
+                "python scripts\\discover_websites.py --source-url https://www.compassultra.com/ --feed-file C:\\Users\\enter\\Compass-Ultra\\app\\public\\crawler-feed.json",
+                "python scripts\\crawl_websites_to_snowflake.py --urls-file targets\\discovered_websites.txt --max-pages 25",
                 "$env:DBT_PROFILES_DIR = (Get-Location).Path",
                 "dbt build --select stg_web_pages fct_website_signals mart_prospect_accounts mart_website_query_index",
             ]

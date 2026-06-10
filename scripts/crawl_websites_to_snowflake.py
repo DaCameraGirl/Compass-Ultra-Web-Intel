@@ -349,7 +349,12 @@ def read_urls(args: argparse.Namespace) -> list[str]:
     urls = list(args.url or [])
     if args.urls_file and not args.skip_urls_file:
         path = Path(args.urls_file)
-        urls.extend(line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+        if path.exists():
+            urls.extend(
+                line.strip()
+                for line in path.read_text(encoding="utf-8").splitlines()
+                if line.strip() and not line.strip().startswith("#")
+            )
     return [normalize_url(url) for url in urls]
 
 
@@ -377,7 +382,7 @@ def require_snowflake(settings: Settings) -> None:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Crawl real websites into Snowflake for Compass Ultra website intelligence.")
     parser.add_argument("--url", action="append", help="Website URL to crawl. Can be repeated.")
-    parser.add_argument("--urls-file", default="targets/market_websites.txt", help="File containing one URL per line.")
+    parser.add_argument("--urls-file", default="targets/discovered_websites.txt", help="File containing one URL per line.")
     parser.add_argument("--skip-urls-file", action="store_true", help="Only use explicit --url and --feed-file inputs.")
     parser.add_argument("--feed-file", action="append", help="Crawler feed JSON file to load. Can be repeated.")
     parser.add_argument("--max-pages", type=int, default=int(os.getenv("WEB_CRAWL_MAX_PAGES", "25")))

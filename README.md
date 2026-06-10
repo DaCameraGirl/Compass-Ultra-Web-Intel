@@ -38,7 +38,8 @@ Optional later sources
 
 ## What It Does Now
 
-- Crawls real websites from `targets/market_websites.txt` or URLs you pass on the command line
+- Discovers related websites from a source site/feed using Tavily Search
+- Crawls discovered websites or URLs you pass on the command line
 - Extracts titles, descriptions, headings, visible text, links, and crawl metadata
 - Loads pages into Snowflake under `RAW_WEBSITE_INTEL`
 - Uses dbt to build a website query index, domain scorecard, and Compass-fit signal tables
@@ -74,10 +75,16 @@ Create the raw website table:
 python scripts\crawl_websites_to_snowflake.py --bootstrap-only
 ```
 
-Crawl real websites into Snowflake:
+Discover related websites from Compass Ultra:
 
 ```powershell
-python scripts\crawl_websites_to_snowflake.py --urls-file targets\market_websites.txt --max-pages 25
+python scripts\discover_websites.py --source-url https://www.compassultra.com/ --feed-file C:\Users\enter\Compass-Ultra\app\public\crawler-feed.json
+```
+
+Crawl discovered websites into Snowflake:
+
+```powershell
+python scripts\crawl_websites_to_snowflake.py --urls-file targets\discovered_websites.txt --max-pages 25
 ```
 
 Load a crawler-safe JSON feed when a site blocks normal crawlers:
@@ -133,6 +140,16 @@ COMPASS_BACKEND_ENV_FILE=C:\Users\enter\Compass-Ultra-Backend\.env
 ```
 
 The scripts read values locally and never print secret values.
+
+## One-Command Discovery Refresh
+
+On Windows, run:
+
+```powershell
+.\Run-WebsiteDiscovery.ps1
+```
+
+That discovers related websites from Compass Ultra, crawls them, loads Snowflake, and rebuilds dbt.
 
 ## dbt Outputs
 
