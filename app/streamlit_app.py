@@ -199,17 +199,14 @@ def run_company_refresh(source_url: str, max_pages: int, log_box) -> None:
 
 
 def render_live_company_runner() -> str:
-    st.markdown("<div class='live-kicker'>LIVE COMPANY RUN</div>", unsafe_allow_html=True)
-    control_1, control_2, control_3 = st.columns([2.6, 0.7, 0.8])
-    with control_1:
+    with st.container(border=True):
+        st.markdown("<div class='live-kicker'>LIVE COMPANY RUN</div>", unsafe_allow_html=True)
         company_or_url = st.text_input(
             "Analyze company or website",
             value=st.session_state.get("company_or_url", ""),
             placeholder="LaunchDarkly, Snowflake, https://example.com",
         )
-    with control_2:
-        max_pages = st.slider("Pages/site", min_value=1, max_value=25, value=5, step=1)
-    with control_3:
+        max_pages = st.slider("Pages per discovered site", min_value=1, max_value=25, value=5, step=1)
         run_clicked = st.button("Run Analysis", type="primary", use_container_width=True)
 
     if not run_clicked:
@@ -517,9 +514,7 @@ def main() -> None:
           font-family: "Segoe UI Variable", "Segoe UI", Aptos, Calibri, sans-serif !important;
         }
         .stApp {
-          background:
-            linear-gradient(180deg, rgba(20, 88, 74, .10) 0, rgba(20, 88, 74, .10) 170px, transparent 171px),
-            #fbfaf5;
+          background: #ffffff;
           color: #101713;
         }
         h1 {
@@ -538,7 +533,7 @@ def main() -> None:
           color: #17241d;
         }
         .block-container {
-          padding-top: 3rem;
+          padding-top: 2.6rem;
           padding-bottom: 3.5rem;
           max-width: 1220px;
         }
@@ -563,12 +558,13 @@ def main() -> None:
           padding-top: 0;
         }
         .stButton > button {
-          min-height: 43px;
+          min-height: 50px;
           border-radius: 7px !important;
           border: 1px solid #14584a !important;
           background: #14584a !important;
           color: #ffffff !important;
           font-weight: 800 !important;
+          font-size: 1rem !important;
         }
         .stButton > button:hover {
           background: #0f473c !important;
@@ -609,6 +605,12 @@ def main() -> None:
           letter-spacing: .04em;
           padding: 5px 9px;
           margin: 2px 0 10px;
+        }
+        [data-testid="stVerticalBlockBorderWrapper"] {
+          background: #f8faf7 !important;
+          border: 1px solid #cddbd2 !important;
+          border-radius: 8px !important;
+          box-shadow: 0 10px 26px rgba(20, 45, 34, .07);
         }
         .focus-note {
           color: #526158;

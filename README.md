@@ -108,7 +108,7 @@ streamlit run app\streamlit_app.py
 
 On Windows, double-click the desktop shortcut named **Compass Ultra Web Intel** if it has been created. It runs `Start-CompassUltraWebIntel.ps1`.
 
-In the app, enter a company name or website in **Company or website**, then click **Run Analysis**. `TAVILY_API_KEY` is required for live discovery; direct website URLs only skip the company-name lookup step.
+In the app, enter a company name or website in **Analyze company or website**, then click the full-width **Run Analysis** button. That single input drives both the live analysis run and the focused results shown below. `TAVILY_API_KEY` is required for live discovery; direct website URLs only skip the company-name lookup step.
 
 The first shortcut launch creates `.env` and installs dependencies. If `.env` is still blank, the app opens to a setup checklist instead of trying to connect to Snowflake. The repo includes `.streamlit/config.toml` to keep Streamlit's built-in toolbar minimal for local use.
 
