@@ -137,6 +137,8 @@ def create_objects(connection, settings: Settings) -> None:
     with connection.cursor() as cursor:
         for statement in statements:
             cursor.execute(statement)
+        cursor.execute(f"use database {quote_ident(db)}")
+        cursor.execute(f"use schema {qualified_name(db, raw)}")
 
 
 def upsert_groups(connection, settings: Settings, groups: list[dict[str, Any]]) -> None:

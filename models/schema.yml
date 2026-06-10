@@ -23,15 +23,16 @@ models:
       - name: health_state
         tests:
           - accepted_values:
-              values:
-                - healthy
-                - paused
-                - setup_issue
-                - delayed
-                - failing
-                - stale
-                - never_synced
-                - unknown
+              arguments:
+                values:
+                  - healthy
+                  - paused
+                  - setup_issue
+                  - delayed
+                  - failing
+                  - stale
+                  - never_synced
+                  - unknown
 
   - name: fct_connection_health
     columns:
@@ -91,7 +92,8 @@ models:
       - name: fit_tier
         tests:
           - accepted_values:
-              values: [high, medium, low, none]
+              arguments:
+                values: [high, medium, low, none]
 
   - name: mart_website_query_index
     description: Searchable page index used by the Compass Ultra website intelligence app.

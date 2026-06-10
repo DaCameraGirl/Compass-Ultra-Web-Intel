@@ -170,6 +170,8 @@ def create_web_objects(connection, settings: Settings) -> None:
             )
             """
         )
+        cursor.execute(f"use database {quote_ident(db)}")
+        cursor.execute(f"use schema {qualified_name(db, schema)}")
 
 
 def serialize(value: Any) -> str | None:
@@ -239,7 +241,7 @@ def merge_pages(connection, settings: Settings, pages: list[Page]) -> None:
         cursor.executemany(
             f"""
             insert into {quote_ident(temp_table)}
-            ({", ".join(quote_ident(column) for column in columns)})
+            ({", ".join(columns)})
             values ({", ".join(["%s"] * len(columns))})
             """,
             rows,
