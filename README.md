@@ -1,8 +1,40 @@
 # Compass Ultra Website Intelligence
 
-This repo is a real Snowflake + dbt + app pipeline for Compass Ultra’s early-stage need: pull public website data, model it, and query it for market, competitor, and prospect signals before there are customers.
+![Snowflake](https://img.shields.io/badge/Snowflake-Data%20Warehouse-29B5E8)
+![dbt](https://img.shields.io/badge/dbt-Transformations-FF694B)
+![Fivetran Ready](https://img.shields.io/badge/Fivetran-Ready%20Ingestion-1D4ED8)
+![Streamlit](https://img.shields.io/badge/Streamlit-Query%20App-FF4B4B)
+![Compass Ultra](https://img.shields.io/badge/Compass%20Ultra-Website%20Intelligence-235D53)
+
+Compass Ultra Website Intelligence is a Snowflake + dbt + Streamlit pipeline for Compass Ultra's early-stage growth work: pull public website data, model it, and query it for market, competitor, and prospect signals before there are customers.
 
 The core workflow does not need Stripe, Auth0, Railway, Vercel, or Fivetran. Those integrations are wired as optional sources for later.
+
+## Stack
+
+- **Snowflake**: warehouse for crawled website pages, optional Compass backend data, optional Stripe/Vercel data, and optional Fivetran metadata
+- **dbt Core + dbt Snowflake**: staging models, marts, tests, and query-ready analytics tables
+- **Fivetran-ready ingestion**: Fivetran API metadata loader is included for connector health and destination visibility
+- **Python**: website crawler, API ingestion jobs, Snowflake loading, validation scripts
+- **Streamlit**: local query app for website intelligence and prospect/domain scoring
+- **Anthropic optional**: sourced answers over retrieved website pages when `ANTHROPIC_API_KEY` is configured
+
+## Architecture
+
+```text
+Public websites
+  -> Python crawler
+  -> Snowflake RAW_WEBSITE_INTEL.PAGES
+  -> dbt staging and marts
+  -> Streamlit query app
+
+Optional later sources
+  -> Fivetran API metadata
+  -> Compass Ultra Railway/Postgres backend
+  -> Stripe billing objects
+  -> Vercel deployment history
+  -> Snowflake + dbt analytics marts
+```
 
 ## What It Does Now
 
@@ -78,7 +110,7 @@ These are not required for the website-intelligence workflow.
 - `scripts\compass_to_snowflake.py`: loads Compass Ultra backend data from Railway/Postgres, Stripe billing, and Vercel deployments when those credentials are configured.
 - `scripts\fivetran_to_snowflake.py`: loads Fivetran group/connection metadata when Fivetran API credentials are configured.
 
-If your Compass backend `.env` already has `DATABASE_URL`, `STRIPE_SECRET_KEY`, or `ANTHROPIC_API_KEY`, set this in this repo’s `.env` instead of copying secrets:
+If your Compass backend `.env` already has `DATABASE_URL`, `STRIPE_SECRET_KEY`, or `ANTHROPIC_API_KEY`, set this in this repo's `.env` instead of copying secrets:
 
 ```text
 COMPASS_BACKEND_ENV_FILE=C:\Users\enter\Compass-Ultra-Backend\.env
@@ -103,3 +135,8 @@ Store-wrapper scaffolding lives in `store/`.
 - Microsoft Store notes: `store/microsoft`
 
 Before a real store submission, host the app at a production HTTPS URL and set `COMPASS_WEB_INTEL_URL` for the Capacitor wrapper. Store submissions also require developer accounts, signing certificates, screenshots, privacy labels, and production icons.
+
+## More Detail
+
+See [docs/TECH_STACK.md](docs/TECH_STACK.md) for how GitHub language detection differs from the actual product stack.
+
