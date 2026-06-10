@@ -4,3 +4,9 @@ toolbarMode = "minimal"
 [browser]
 gatherUsageStats = false
 
+[theme]
+primaryColor = "#14584A"
+backgroundColor = "#FBFAF5"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#101713"
+font = "sans serif"

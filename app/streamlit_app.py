@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pandas as pd
 import requests
@@ -10,6 +13,27 @@ from dotenv import load_dotenv
 
 from data_ops.settings import Settings
 from data_ops.snowflake import connect, qualified_name
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_COMPASS_FEED = Path(r"C:\Users\enter\Compass-Ultra\app\public\crawler-feed.json")
+SOCIAL_AND_DIRECTORY_DOMAINS = {
+    "angel.co",
+    "apps.apple.com",
+    "crunchbase.com",
+    "facebook.com",
+    "github.com",
+    "instagram.com",
+    "linkedin.com",
+    "medium.com",
+    "pitchbook.com",
+    "play.google.com",
+    "reddit.com",
+    "twitter.com",
+    "wikipedia.org",
+    "x.com",
+    "youtube.com",
+}
 
 
 def load_environment() -> None:
@@ -40,6 +64,179 @@ def query_df(sql: str, params: tuple = ()) -> pd.DataFrame:
 def analytics_table(name: str) -> str:
     settings = Settings.from_env()
     return qualified_name(settings.snowflake_database, settings.snowflake_analytics_schema, name)
+
+
+def root_domain(url: str) -> str:
+    return urlparse(url).netloc.lower().removeprefix("www.")
+
+
+def normalize_urlish(value: str) -> str:
+    clean = value.strip()
+    if not clean.startswith(("http://", "https://")):
+        clean = "https://" + clean
+    parsed = urlparse(clean)
+    path = parsed.path.rstrip("/") or "/"
+    return parsed._replace(path=path, query="", fragment="").geturl()
+
+
+def looks_like_url(value: str) -> bool:
+    clean = value.strip()
+    first_token = clean.split()[0] if clean.split() else ""
+    return clean.startswith(("http://", "https://")) or ("." in first_token and "@" not in first_token)
+
+
+def result_focus_query(company_or_url: str) -> str:
+    value = company_or_url.strip()
+    if not value:
+        return ""
+    if looks_like_url(value):
+        return root_domain(normalize_urlish(value)) or value
+    return value
+
+
+def resolve_company_source(company_or_url: str) -> tuple[str, str]:
+    value = company_or_url.strip()
+    if not value:
+        raise ValueError("Enter a company name or website.")
+    if looks_like_url(value):
+        return normalize_urlish(value), "website"
+
+    api_key = os.getenv("TAVILY_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("Company-name lookup needs TAVILY_API_KEY. Enter a website URL instead.")
+
+    response = requests.post(
+        "https://api.tavily.com/search",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "query": f"{value} official company website",
+            "search_depth": "basic",
+            "max_results": 8,
+            "include_answer": False,
+            "include_raw_content": False,
+            "exclude_domains": sorted(SOCIAL_AND_DIRECTORY_DOMAINS),
+        },
+        timeout=45,
+    )
+    response.raise_for_status()
+    for result in response.json().get("results", []):
+        url = result.get("url")
+        if not url:
+            continue
+        normalized = normalize_urlish(url)
+        domain = root_domain(normalized)
+        if domain and not any(domain == excluded or domain.endswith("." + excluded) for excluded in SOCIAL_AND_DIRECTORY_DOMAINS):
+            return normalized, result.get("title") or domain
+    raise RuntimeError(f"No official website found for {value}. Try entering the URL directly.")
+
+
+def format_command(command: list[str]) -> str:
+    return " ".join(f'"{part}"' if " " in part else part for part in command)
+
+
+def run_logged_command(command: list[str], env: dict[str, str], log_lines: list[str], log_box) -> None:
+    log_lines.append(f"$ {format_command(command)}")
+    log_box.code("\n".join(log_lines[-90:]), language="text")
+    process = subprocess.Popen(
+        command,
+        cwd=ROOT,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    assert process.stdout is not None
+    for line in process.stdout:
+        clean = line.rstrip()
+        if clean:
+            log_lines.append(clean)
+            log_box.code("\n".join(log_lines[-90:]), language="text")
+    return_code = process.wait()
+    if return_code != 0:
+        raise RuntimeError(f"Command failed with exit code {return_code}: {format_command(command)}")
+
+
+def run_company_refresh(source_url: str, max_pages: int, log_box) -> None:
+    env = os.environ.copy()
+    env["DBT_PROFILES_DIR"] = str(ROOT)
+    log_lines: list[str] = []
+
+    discover_command = [
+        sys.executable,
+        str(ROOT / "scripts" / "discover_websites.py"),
+        "--source-url",
+        source_url,
+    ]
+    if root_domain(source_url) == "compassultra.com" and DEFAULT_COMPASS_FEED.exists():
+        discover_command.extend(["--feed-file", str(DEFAULT_COMPASS_FEED)])
+
+    crawl_command = [
+        sys.executable,
+        str(ROOT / "scripts" / "crawl_websites_to_snowflake.py"),
+        "--urls-file",
+        "targets/discovered_websites.txt",
+        "--max-pages",
+        str(max_pages),
+    ]
+
+    dbt_exe = ROOT / ".venv" / "Scripts" / "dbt.exe"
+    dbt_command = [
+        str(dbt_exe if dbt_exe.exists() else "dbt"),
+        "build",
+        "--select",
+        "stg_web_pages",
+        "fct_website_signals",
+        "mart_prospect_accounts",
+        "mart_website_query_index",
+    ]
+
+    for command in [discover_command, crawl_command, dbt_command]:
+        run_logged_command(command, env, log_lines, log_box)
+
+
+def render_live_company_runner() -> str:
+    st.markdown("<div class='live-kicker'>LIVE COMPANY RUN</div>", unsafe_allow_html=True)
+    control_1, control_2, control_3 = st.columns([2.6, 0.7, 0.8])
+    with control_1:
+        company_or_url = st.text_input(
+            "Analyze company or website",
+            value=st.session_state.get("company_or_url", ""),
+            placeholder="LaunchDarkly, Snowflake, https://example.com",
+        )
+    with control_2:
+        max_pages = st.slider("Pages/site", min_value=1, max_value=25, value=5, step=1)
+    with control_3:
+        run_clicked = st.button("Run Analysis", type="primary", use_container_width=True)
+
+    if not run_clicked:
+        return company_or_url
+
+    st.session_state["company_or_url"] = company_or_url
+    try:
+        source_url, source_label = resolve_company_source(company_or_url)
+    except Exception as exc:
+        st.error(str(exc))
+        return company_or_url
+    if not os.getenv("TAVILY_API_KEY", ""):
+        st.error("Live analysis needs TAVILY_API_KEY for discovery.")
+        return company_or_url
+
+    with st.status(f"Running analysis from {root_domain(source_url)}", expanded=True) as status:
+        st.write(f"Resolved source: `{source_url}`")
+        st.caption(source_label)
+        log_box = st.empty()
+        try:
+            run_company_refresh(source_url, max_pages, log_box)
+        except Exception as exc:
+            status.update(label="Analysis failed", state="error", expanded=True)
+            st.error(str(exc))
+            return company_or_url
+        status.update(label="Analysis complete. Updated results are below.", state="complete", expanded=False)
+    return company_or_url
 
 
 def missing_snowflake_settings(settings: Settings) -> list[str]:
@@ -133,41 +330,104 @@ def load_accounts() -> pd.DataFrame:
     )
 
 
-def answer_with_anthropic(question: str, pages: pd.DataFrame) -> str | None:
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
-    if not api_key or not question.strip() or pages.empty:
-        return None
-
+def answer_prompt(question: str, pages: pd.DataFrame) -> str:
     context_parts = []
     for row in pages.head(6).itertuples(index=False):
         context_parts.append(
             f"URL: {row.url}\nTitle: {row.title}\nText: {str(row.preview_text)[:1200]}"
         )
-    prompt = (
+    return (
         "Answer the question using only the website excerpts below. "
         "Call out useful prospecting, positioning, or product signals for Compass Ultra. "
         "Cite source URLs inline.\n\n"
         f"Question: {question}\n\n"
         + "\n\n---\n\n".join(context_parts)
     )
+
+
+def has_llm_key() -> bool:
+    return any(
+        os.getenv(key, "")
+        for key in ["ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY"]
+    )
+
+
+def openai_compatible_answer(endpoint: str, api_key: str, model: str, prompt: str, extra_headers: dict[str, str] | None = None) -> str:
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    headers.update(extra_headers or {})
     response = requests.post(
-        "https://api.anthropic.com/v1/messages",
-        headers={
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        },
+        endpoint,
+        headers=headers,
         json={
             "model": model,
-            "max_tokens": 900,
             "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,
+            "max_tokens": 900,
         },
         timeout=60,
     )
     response.raise_for_status()
     payload = response.json()
-    return "\n".join(block.get("text", "") for block in payload.get("content", []) if block.get("type") == "text")
+    return payload.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+
+def answer_with_llm(question: str, pages: pd.DataFrame) -> str | None:
+    if not question.strip() or pages.empty or not has_llm_key():
+        return None
+
+    prompt = answer_prompt(question, pages)
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if api_key:
+        model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+        response = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": model,
+                "max_tokens": 900,
+                "messages": [{"role": "user", "content": prompt}],
+            },
+            timeout=60,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        return "\n".join(block.get("text", "") for block in payload.get("content", []) if block.get("type") == "text")
+
+    api_key = os.getenv("OPENROUTER_API_KEY", "")
+    if api_key:
+        return openai_compatible_answer(
+            "https://openrouter.ai/api/v1/chat/completions",
+            api_key,
+            os.getenv("OPENROUTER_MODEL", "deepseek/deepseek-chat"),
+            prompt,
+            {"HTTP-Referer": "http://localhost:8501", "X-Title": "Compass Ultra Web Intel"},
+        )
+
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if api_key:
+        return openai_compatible_answer(
+            "https://api.openai.com/v1/chat/completions",
+            api_key,
+            os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+            prompt,
+        )
+
+    api_key = os.getenv("DEEPSEEK_API_KEY", "")
+    if api_key:
+        return openai_compatible_answer(
+            "https://api.deepseek.com/chat/completions",
+            api_key,
+            os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+            prompt,
+        )
+    return None
 
 
 def render_metric(label: str, value: object) -> None:
@@ -213,6 +473,7 @@ def render_setup_screen(missing: list[str]) -> None:
                 "SNOWFLAKE_WEB_SCHEMA=RAW_WEBSITE_INTEL",
                 "SNOWFLAKE_STAGING_SCHEMA=STAGING",
                 "SNOWFLAKE_ANALYTICS_SCHEMA=ANALYTICS",
+                "TAVILY_API_KEY=your-tavily-api-key",
             ]
         ),
         language="text",
@@ -223,10 +484,7 @@ def render_setup_screen(missing: list[str]) -> None:
             [
                 "python scripts\\validate_environment.py",
                 "python scripts\\crawl_websites_to_snowflake.py --bootstrap-only",
-                "python scripts\\discover_websites.py --source-url https://www.compassultra.com/ --feed-file C:\\Users\\enter\\Compass-Ultra\\app\\public\\crawler-feed.json",
-                "python scripts\\crawl_websites_to_snowflake.py --urls-file targets\\discovered_websites.txt --max-pages 25",
-                "$env:DBT_PROFILES_DIR = (Get-Location).Path",
-                "dbt build --select stg_web_pages fct_website_signals mart_prospect_accounts mart_website_query_index",
+                ".\\Run-WebsiteDiscovery.ps1 -SourceUrl https://www.compassultra.com/",
             ]
         ),
         language="powershell",
@@ -240,10 +498,7 @@ def render_data_not_ready(error: Exception) -> None:
         "\n".join(
             [
                 "python scripts\\crawl_websites_to_snowflake.py --bootstrap-only",
-                "python scripts\\discover_websites.py --source-url https://www.compassultra.com/ --feed-file C:\\Users\\enter\\Compass-Ultra\\app\\public\\crawler-feed.json",
-                "python scripts\\crawl_websites_to_snowflake.py --urls-file targets\\discovered_websites.txt --max-pages 25",
-                "$env:DBT_PROFILES_DIR = (Get-Location).Path",
-                "dbt build --select stg_web_pages fct_website_signals mart_prospect_accounts mart_website_query_index",
+                ".\\Run-WebsiteDiscovery.ps1 -SourceUrl https://www.compassultra.com/",
             ]
         ),
         language="powershell",
@@ -258,38 +513,138 @@ def main() -> None:
     st.markdown(
         """
         <style>
-        .stApp { background: #f7f4ed; color: #191a17; }
-        h1, h2, h3 { letter-spacing: 0 !important; }
-        .block-container { padding-top: 2rem; max-width: 1360px; }
+        html, body, .stApp, [class*="css"], button, input, textarea {
+          font-family: "Segoe UI Variable", "Segoe UI", Aptos, Calibri, sans-serif !important;
+        }
+        .stApp {
+          background:
+            linear-gradient(180deg, rgba(20, 88, 74, .10) 0, rgba(20, 88, 74, .10) 170px, transparent 171px),
+            #fbfaf5;
+          color: #101713;
+        }
+        h1 {
+          color: #0f1713 !important;
+          font-size: 2.55rem !important;
+          font-weight: 800 !important;
+          line-height: 1.08 !important;
+          letter-spacing: 0 !important;
+          margin-bottom: 1.1rem !important;
+        }
+        h2, h3 {
+          color: #122019 !important;
+          letter-spacing: 0 !important;
+        }
+        label, p, span, div {
+          color: #17241d;
+        }
+        .block-container {
+          padding-top: 3rem;
+          padding-bottom: 3.5rem;
+          max-width: 1220px;
+        }
+        [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] {
+          gap: .85rem;
+        }
+        [data-testid="stHorizontalBlock"] {
+          gap: 1rem;
+        }
+        [data-testid="stTextInput"] input {
+          background: #ffffff !important;
+          color: #101713 !important;
+          border: 1px solid #c7d1c9 !important;
+          border-radius: 7px !important;
+          min-height: 44px;
+        }
+        [data-testid="stTextInput"] input:focus {
+          border-color: #14584a !important;
+          box-shadow: 0 0 0 1px #14584a !important;
+        }
+        [data-testid="stSlider"] {
+          padding-top: 0;
+        }
+        .stButton > button {
+          min-height: 43px;
+          border-radius: 7px !important;
+          border: 1px solid #14584a !important;
+          background: #14584a !important;
+          color: #ffffff !important;
+          font-weight: 800 !important;
+        }
+        .stButton > button:hover {
+          background: #0f473c !important;
+          border-color: #0f473c !important;
+          color: #ffffff !important;
+        }
         .metric {
-          border: 1px solid #d8d1c2;
-          background: #fffdf7;
-          border-radius: 6px;
-          padding: 14px 16px;
-          min-height: 84px;
+          border: 1px solid #d0d9d1;
+          background: #ffffff;
+          border-radius: 7px;
+          padding: 16px 18px;
+          min-height: 88px;
+          box-shadow: 0 8px 18px rgba(20, 45, 34, .05);
         }
         .metric span {
           display: block;
-          color: #6d685f;
+          color: #536157;
           font-size: .78rem;
           text-transform: uppercase;
           letter-spacing: 0 !important;
           margin-bottom: 8px;
+          font-weight: 750;
         }
-        .metric strong { font-size: 1.7rem; line-height: 1; }
+        .metric strong {
+          color: #0f1713;
+          font-size: 1.75rem;
+          line-height: 1;
+        }
+        .live-kicker {
+          display: inline-flex;
+          align-items: center;
+          border: 1px solid #255d52;
+          border-radius: 7px;
+          color: #ffffff;
+          background: #14584a;
+          font-size: .76rem;
+          font-weight: 800;
+          letter-spacing: .04em;
+          padding: 5px 9px;
+          margin: 2px 0 10px;
+        }
+        .focus-note {
+          color: #526158;
+          font-size: .9rem;
+          margin: 4px 0 12px;
+        }
         .result {
-          border-top: 1px solid #d8d1c2;
-          padding: 16px 0;
+          border-top: 1px solid #d3ddd5;
+          padding: 18px 0;
+          background: transparent;
         }
-        .result a { color: #235d53; text-decoration: none; font-weight: 700; }
+        .result a {
+          color: #14584a;
+          text-decoration: none;
+          font-weight: 800;
+        }
+        .result p {
+          color: #26362d;
+          font-size: .98rem;
+          line-height: 1.58;
+        }
         .pill {
           display: inline-block;
-          border: 1px solid #c7bea9;
+          border: 1px solid #b9c8be;
+          background: #ffffff;
           border-radius: 999px;
-          padding: 2px 8px;
+          padding: 3px 9px;
           margin-right: 6px;
-          color: #474238;
+          color: #26362d;
           font-size: .82rem;
+          font-weight: 650;
+        }
+        [data-testid="stDataFrame"] {
+          border: 1px solid #d0d9d1;
+          border-radius: 7px;
+          overflow: hidden;
         }
         </style>
         """,
@@ -302,6 +657,9 @@ def main() -> None:
     if missing:
         render_setup_screen(missing)
         return
+
+    company_or_url = render_live_company_runner()
+    focus_query = result_focus_query(company_or_url)
 
     try:
         accounts = load_accounts()
@@ -321,16 +679,17 @@ def main() -> None:
 
     left, right = st.columns([1.2, 0.8], gap="large")
     with left:
-        question = st.text_input("Search", value="", placeholder="release gates, stale flags, audit-ready, LaunchDarkly")
         limit = st.slider("Results", min_value=5, max_value=50, value=15, step=5)
-        results = search_pages(question, limit)
-        if question and os.getenv("ANTHROPIC_API_KEY"):
+        if focus_query:
+            st.markdown(f"<div class='focus-note'>Showing matches for <strong>{focus_query}</strong></div>", unsafe_allow_html=True)
+        results = search_pages(focus_query, limit)
+        if focus_query and has_llm_key():
             with st.spinner("Answering from retrieved pages"):
                 try:
-                    answer = answer_with_anthropic(question, results)
+                    answer = answer_with_llm(f"Summarize the strongest website intelligence signals for {focus_query}.", results)
                     if answer:
                         st.markdown(answer)
-                except requests.RequestException as exc:
+                except Exception as exc:
                     st.warning(f"AI answer failed: {exc}")
         for row in results.itertuples(index=False):
             st.markdown("<div class='result'>", unsafe_allow_html=True)

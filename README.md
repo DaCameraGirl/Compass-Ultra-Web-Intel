@@ -17,7 +17,7 @@ The core workflow does not need Stripe, Auth0, Railway, Vercel, or Fivetran. Tho
 - **Fivetran-ready ingestion**: Fivetran API metadata loader is included for connector health and destination visibility
 - **Python**: website crawler, API ingestion jobs, Snowflake loading, validation scripts
 - **Streamlit**: local query app for website intelligence and prospect/domain scoring
-- **Anthropic optional**: sourced answers over retrieved website pages when `ANTHROPIC_API_KEY` is configured
+- **Optional LLM answers**: sourced answers over retrieved website pages with Anthropic, OpenAI, OpenRouter, or DeepSeek keys
 
 ## Architecture
 
@@ -44,7 +44,7 @@ Optional later sources
 - Loads pages into Snowflake under `RAW_WEBSITE_INTEL`
 - Uses dbt to build a website query index, domain scorecard, and Compass-fit signal tables
 - Runs a Streamlit query app over the dbt marts
-- Uses Anthropic for sourced answers when `ANTHROPIC_API_KEY` is configured
+- Uses Anthropic, OpenAI, OpenRouter, or DeepSeek for sourced answers when a supported LLM key is configured
 
 ## Core Setup
 
@@ -75,10 +75,10 @@ Create the raw website table:
 python scripts\crawl_websites_to_snowflake.py --bootstrap-only
 ```
 
-Discover related websites from Compass Ultra:
+Discover related websites from a source website:
 
 ```powershell
-python scripts\discover_websites.py --source-url https://www.compassultra.com/ --feed-file C:\Users\enter\Compass-Ultra\app\public\crawler-feed.json
+python scripts\discover_websites.py --source-url https://www.example.com/
 ```
 
 Crawl discovered websites into Snowflake:
@@ -108,6 +108,8 @@ streamlit run app\streamlit_app.py
 
 On Windows, double-click the desktop shortcut named **Compass Ultra Web Intel** if it has been created. It runs `Start-CompassUltraWebIntel.ps1`.
 
+In the app, enter a company name or website in **Company or website**, then click **Run Analysis**. `TAVILY_API_KEY` is required for live discovery; direct website URLs only skip the company-name lookup step.
+
 The first shortcut launch creates `.env` and installs dependencies. If `.env` is still blank, the app opens to a setup checklist instead of trying to connect to Snowflake. The repo includes `.streamlit/config.toml` to keep Streamlit's built-in toolbar minimal for local use.
 
 If Snowflake browser login is not enabled for the account, run `Set-SnowflakePassword.ps1` locally. It prompts for the Snowflake password and writes it only to `.env`.
@@ -133,7 +135,7 @@ These are not required for the website-intelligence workflow.
 - `scripts\compass_to_snowflake.py`: loads Compass Ultra backend data from Railway/Postgres, Stripe billing, and Vercel deployments when those credentials are configured.
 - `scripts\fivetran_to_snowflake.py`: loads Fivetran group/connection metadata when Fivetran API credentials are configured.
 
-If your Compass backend `.env` already has `DATABASE_URL`, `STRIPE_SECRET_KEY`, or `ANTHROPIC_API_KEY`, set this in this repo's `.env` instead of copying secrets:
+If your Compass backend `.env` already has `DATABASE_URL`, `STRIPE_SECRET_KEY`, or AI provider keys, set this in this repo's `.env` instead of copying secrets:
 
 ```text
 COMPASS_BACKEND_ENV_FILE=C:\Users\enter\Compass-Ultra-Backend\.env
@@ -149,7 +151,28 @@ On Windows, run:
 .\Run-WebsiteDiscovery.ps1
 ```
 
-That discovers related websites from Compass Ultra, crawls them, loads Snowflake, and rebuilds dbt.
+That discovers related websites from Compass Ultra by default, crawls them, loads Snowflake, rebuilds dbt, and opens the local app. To run another source website:
+
+```powershell
+.\Run-WebsiteDiscovery.ps1 -SourceUrl https://www.example.com/ -MaxPages 5
+```
+
+## Hosting
+
+This app needs a Python/Streamlit runtime, Snowflake credentials, and Tavily for live discovery. GitHub Pages is not enough because it only serves static files.
+
+Use Streamlit Community Cloud for a free public deployment from the GitHub repo. Put secrets in Streamlit's secrets manager, not in GitHub:
+
+- `TAVILY_API_KEY`
+- `SNOWFLAKE_ACCOUNT`
+- `SNOWFLAKE_USER`
+- `SNOWFLAKE_PASSWORD` or key-pair settings
+- `SNOWFLAKE_ROLE`
+- `SNOWFLAKE_WAREHOUSE`
+- `SNOWFLAKE_DATABASE`
+- optional AI provider keys
+
+Before sharing the app publicly, add access control or disable unrestricted live runs so visitors cannot trigger crawl/Snowflake/API usage without permission.
 
 ## dbt Outputs
 

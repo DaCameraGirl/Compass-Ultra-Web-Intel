@@ -1,6 +1,6 @@
 # Accounts And Keys You Need
 
-The website-intelligence workflow only needs Snowflake. Other API keys are optional.
+The website-intelligence workflow needs Snowflake for storage/dbt and Tavily for live discovery. Other API keys are optional.
 
 ## 1. Snowflake Required
 
@@ -44,20 +44,45 @@ The Snowflake role needs access to:
 
 The website crawler stores public pages in Snowflake and dbt builds the query tables.
 
-## 2. Anthropic Optional
+## 2. Tavily Required For Discovery
+
+Use Tavily for company-name lookup and related-website discovery.
+
+https://app.tavily.com/
+
+Create an API key and set:
+
+- `TAVILY_API_KEY`
+
+## 3. AI Answers Optional
 
 Use this only if you want AI answers over crawled websites.
 
 https://console.anthropic.com/
 
-Create an API key and set:
+Anthropic:
 
 - `ANTHROPIC_API_KEY`
 - `ANTHROPIC_MODEL`
 
-The default model in `.env.example` is `claude-sonnet-4-6`.
+OpenAI:
 
-## 3. Fivetran Optional
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+
+OpenRouter:
+
+- `OPENROUTER_API_KEY`
+- `OPENROUTER_MODEL`
+
+DeepSeek:
+
+- `DEEPSEEK_API_KEY`
+- `DEEPSEEK_MODEL`
+
+The app uses the first configured provider in this order: Anthropic, OpenRouter, OpenAI, DeepSeek.
+
+## 4. Fivetran Optional
 
 Use this later if you want managed connectors into Snowflake.
 
@@ -65,7 +90,7 @@ https://www.fivetran.com/signup
 
 Create a Fivetran API key and secret in Fivetran account or user settings.
 
-## 4. Vercel Optional
+## 5. Vercel Optional
 
 Use this later if you want deployment data in the warehouse.
 
@@ -76,9 +101,9 @@ Create a token and set:
 - `VERCEL_TOKEN`
 - `VERCEL_PROJECT_ID`
 
-## 5. Existing Compass Backend Secrets
+## 6. Existing Compass Backend Secrets
 
-Your Compass backend already has useful values like `DATABASE_URL`, `STRIPE_SECRET_KEY`, and `ANTHROPIC_API_KEY`.
+Your Compass backend may already have useful values like `DATABASE_URL`, `STRIPE_SECRET_KEY`, and AI provider keys.
 
 Do not copy them into chat. Point this repo to that local file:
 
@@ -86,7 +111,7 @@ Do not copy them into chat. Point this repo to that local file:
 COMPASS_BACKEND_ENV_FILE=C:\Users\enter\Compass-Ultra-Backend\.env
 ```
 
-## 6. dbt
+## 7. dbt
 
 No dbt Cloud account is required. This project uses dbt Core from `requirements.txt`.
 

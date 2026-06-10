@@ -51,8 +51,12 @@ def main() -> int:
         return 1
 
     print("Environment configuration is complete.")
+    has_ai_answers = any(
+        os.getenv(key)
+        for key in ["ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY"]
+    )
     optional = {
-        "Anthropic AI answers": bool(os.getenv("ANTHROPIC_API_KEY")),
+        "AI sourced answers": has_ai_answers,
         "Compass Railway/Postgres ingestion": bool(os.getenv("DATABASE_URL")),
         "Stripe billing ingestion": bool(os.getenv("STRIPE_SECRET_KEY")),
         "Vercel deployment ingestion": bool(os.getenv("VERCEL_TOKEN")),

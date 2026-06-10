@@ -14,3 +14,4 @@ dbt_packages/
 .user.yml
 targets/discovered_websites.txt
 targets/discovery_results.json
+shortcuts_backup/
