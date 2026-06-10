@@ -80,6 +80,12 @@ Crawl real websites into Snowflake:
 python scripts\crawl_websites_to_snowflake.py --urls-file targets\market_websites.txt --max-pages 25
 ```
 
+Load a crawler-safe JSON feed when a site blocks normal crawlers:
+
+```powershell
+python scripts\crawl_websites_to_snowflake.py --feed-file C:\path\to\crawler-feed.json --skip-urls-file
+```
+
 Build the dbt website marts:
 
 ```powershell

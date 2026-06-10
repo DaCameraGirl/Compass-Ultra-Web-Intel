@@ -45,6 +45,64 @@ class Page:
     raw_payload: dict[str, Any]
 
 
+def page_from_feed_item(item: dict[str, Any], fallback_site: str) -> Page:
+    url = normalize_url(str(item.get("url") or fallback_site))
+    title = text_or_empty(item.get("title"))
+    meta_description = text_or_empty(item.get("meta_description") or item.get("description"))
+    headings = [text_or_empty(value) for value in item.get("headings", []) if text_or_empty(value)]
+    body_text = text_or_empty(item.get("body_text") or item.get("text") or item.get("content"))
+    content = " ".join([title, meta_description, " ".join(headings), body_text])
+    content_hash = hashlib.sha256(content.encode("utf-8", errors="ignore")).hexdigest()
+    fetched_at = datetime.now(timezone.utc)
+    return Page(
+        url=url,
+        domain=root_domain(url),
+        title=title,
+        meta_description=meta_description,
+        headings=headings,
+        body_text=body_text[:500_000],
+        status_code=200,
+        content_type="application/json+crawler-feed",
+        content_hash=content_hash,
+        fetched_at=fetched_at,
+        raw_payload={
+            "source": "crawler_feed",
+            "fetched_at": fetched_at.isoformat(),
+            "item": item,
+        },
+    )
+
+
+def pages_from_feed(payload: dict[str, Any], fallback_site: str) -> list[Page]:
+    site = str(payload.get("site") or fallback_site)
+    items = payload.get("pages") or []
+    if not isinstance(items, list):
+        raise ValueError("crawler feed must contain a pages array")
+    return [page_from_feed_item(item, site) for item in items if isinstance(item, dict)]
+
+
+def load_feed_file(path: Path) -> list[Page]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return pages_from_feed(payload, str(payload.get("site") or path.as_uri()))
+
+
+def fetch_crawler_feed(start_url: str) -> list[Page]:
+    parsed = urlparse(normalize_url(start_url))
+    feed_url = f"{parsed.scheme}://{parsed.netloc}/crawler-feed.json"
+    response = requests.get(
+        feed_url,
+        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+        timeout=25,
+    )
+    if response.status_code != 200:
+        return []
+    try:
+        payload = response.json()
+    except ValueError:
+        return []
+    return pages_from_feed(payload, start_url)
+
+
 def normalize_url(url: str) -> str:
     clean, _fragment = urldefrag(url.strip())
     parsed = urlparse(clean)
@@ -289,7 +347,7 @@ def merge_pages(connection, settings: Settings, pages: list[Page]) -> None:
 
 def read_urls(args: argparse.Namespace) -> list[str]:
     urls = list(args.url or [])
-    if args.urls_file:
+    if args.urls_file and not args.skip_urls_file:
         path = Path(args.urls_file)
         urls.extend(line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
     return [normalize_url(url) for url in urls]
@@ -320,6 +378,8 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Crawl real websites into Snowflake for Compass Ultra website intelligence.")
     parser.add_argument("--url", action="append", help="Website URL to crawl. Can be repeated.")
     parser.add_argument("--urls-file", default="targets/market_websites.txt", help="File containing one URL per line.")
+    parser.add_argument("--skip-urls-file", action="store_true", help="Only use explicit --url and --feed-file inputs.")
+    parser.add_argument("--feed-file", action="append", help="Crawler feed JSON file to load. Can be repeated.")
     parser.add_argument("--max-pages", type=int, default=int(os.getenv("WEB_CRAWL_MAX_PAGES", "25")))
     parser.add_argument("--delay-seconds", type=float, default=0.75)
     parser.add_argument("--bootstrap-only", action="store_true")
@@ -335,16 +395,29 @@ def main(argv: list[str]) -> int:
             print("Website intelligence raw Snowflake objects are ready.")
             return 0
 
-        urls = read_urls(args)
-        if not urls:
-            raise RuntimeError("No URLs supplied.")
-
         total_pages = 0
-        for url in urls:
-            pages = crawl_site(url, args.max_pages, args.delay_seconds)
+        for feed_file in args.feed_file or []:
+            pages = load_feed_file(Path(feed_file))
             merge_pages(snowflake_connection, settings, pages)
             total_pages += len(pages)
-            print(f"{url}: loaded {len(pages)} pages")
+            print(f"{feed_file}: loaded {len(pages)} feed pages")
+
+        urls = read_urls(args)
+        if not urls:
+            if total_pages:
+                print(f"Loaded {total_pages} pages into Snowflake.")
+                return 0
+            raise RuntimeError("No URLs or feed files supplied.")
+
+        for url in urls:
+            pages = fetch_crawler_feed(url)
+            if pages:
+                print(f"{url}: loaded {len(pages)} crawler-feed pages")
+            else:
+                pages = crawl_site(url, args.max_pages, args.delay_seconds)
+                print(f"{url}: loaded {len(pages)} pages")
+            merge_pages(snowflake_connection, settings, pages)
+            total_pages += len(pages)
         print(f"Loaded {total_pages} pages into Snowflake.")
         return 0
 
