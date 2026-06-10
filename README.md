@@ -56,6 +56,12 @@ Copy-Item .env.example .env
 
 Fill `.env` with real Snowflake values. Do not commit `.env`.
 
+Get Snowflake here:
+
+- New trial: https://signup.snowflake.com/
+- Login: https://app.snowflake.com/
+- Account ID help: https://docs.snowflake.com/en/user-guide/admin-account-identifier
+
 Validate:
 
 ```powershell

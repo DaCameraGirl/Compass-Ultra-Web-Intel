@@ -173,6 +173,25 @@ def render_metric(label: str, value: object) -> None:
 def render_setup_screen(missing: list[str]) -> None:
     st.warning("The app started correctly, but Snowflake is not configured yet.")
     st.write("The desktop shortcut created `.env` from `.env.example`. Add your real Snowflake values there, then run the pipeline.")
+    st.subheader("Where To Get Snowflake")
+    st.markdown(
+        """
+        - New account: [Snowflake free trial](https://signup.snowflake.com/)
+        - Existing account login: [Snowflake Snowsight](https://app.snowflake.com/)
+        - Account ID help: [Snowflake account identifiers](https://docs.snowflake.com/en/user-guide/admin-account-identifier)
+        """
+    )
+    st.subheader("What To Click In Snowflake")
+    st.markdown(
+        """
+        1. Sign in at `https://app.snowflake.com/`.
+        2. Open the account selector, then choose **View account details**.
+        3. Copy the account identifier for `SNOWFLAKE_ACCOUNT`. It usually looks like `orgname-accountname`.
+        4. Use your login name for `SNOWFLAKE_USER`.
+        5. Use `ACCOUNTADMIN` or `SYSADMIN` for `SNOWFLAKE_ROLE` if this is your own trial account.
+        6. Use `COMPUTE_WH` for `SNOWFLAKE_WAREHOUSE` if you kept Snowflake's default warehouse.
+        """
+    )
     st.subheader("Missing Configuration")
     for key in missing:
         st.write(f"- `{key}`")

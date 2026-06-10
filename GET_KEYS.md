@@ -8,13 +8,33 @@ Go to:
 
 https://signup.snowflake.com/
 
-Create a trial account. In Snowflake, collect these values:
+If you already have an account, sign in here:
+
+https://app.snowflake.com/
+
+Create a trial account or sign in. In Snowflake, collect these values:
 
 - account identifier
 - username
 - password or private key
 - role
 - warehouse
+
+Where to find the account identifier:
+
+1. Sign in to Snowsight.
+2. Open the account selector.
+3. Select **View account details**.
+4. Copy the account identifier. Snowflake documents this flow here:
+
+https://docs.snowflake.com/en/user-guide/admin-account-identifier
+
+For a new personal trial, common starting values are:
+
+```text
+SNOWFLAKE_ROLE=ACCOUNTADMIN
+SNOWFLAKE_WAREHOUSE=COMPUTE_WH
+```
 
 The Snowflake role needs access to:
 
