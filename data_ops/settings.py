@@ -13,6 +13,7 @@ class Settings:
     fivetran_api_base_url: str
     snowflake_account: str
     snowflake_user: str
+    snowflake_authenticator: str
     snowflake_password: str
     snowflake_private_key_path: str
     snowflake_private_key_passphrase: str
@@ -36,6 +37,7 @@ class Settings:
             fivetran_api_base_url=os.getenv("FIVETRAN_API_BASE_URL", "https://api.fivetran.com"),
             snowflake_account=os.getenv("SNOWFLAKE_ACCOUNT", ""),
             snowflake_user=os.getenv("SNOWFLAKE_USER", ""),
+            snowflake_authenticator=os.getenv("SNOWFLAKE_AUTHENTICATOR", ""),
             snowflake_password=os.getenv("SNOWFLAKE_PASSWORD", ""),
             snowflake_private_key_path=os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH", ""),
             snowflake_private_key_passphrase=os.getenv("SNOWFLAKE_PRIVATE_KEY_PASSPHRASE", ""),

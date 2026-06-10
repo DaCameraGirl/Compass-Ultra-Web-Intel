@@ -43,10 +43,11 @@ def connect(settings: Settings, *, database: str | None = None, schema: str | No
     if schema:
         params["schema"] = schema
 
+    if settings.snowflake_authenticator:
+        params["authenticator"] = settings.snowflake_authenticator
     if settings.snowflake_private_key_path:
         params["private_key"] = _private_key_der(settings)
-    else:
+    elif settings.snowflake_password:
         params["password"] = settings.snowflake_password
 
     return snowflake.connector.connect(**params)
-

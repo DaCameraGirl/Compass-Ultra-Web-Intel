@@ -54,8 +54,12 @@ def missing_snowflake_settings(settings: Settings) -> list[str]:
         "SNOWFLAKE_WEB_SCHEMA": settings.snowflake_web_schema,
     }
     missing = [key for key, value in values.items() if not value]
-    if not settings.snowflake_password and not settings.snowflake_private_key_path:
-        missing.append("SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_PATH")
+    if (
+        not settings.snowflake_password
+        and not settings.snowflake_private_key_path
+        and settings.snowflake_authenticator.lower() != "externalbrowser"
+    ):
+        missing.append("SNOWFLAKE_PASSWORD, SNOWFLAKE_PRIVATE_KEY_PATH, or SNOWFLAKE_AUTHENTICATOR=externalbrowser")
     return missing
 
 
@@ -201,6 +205,7 @@ def render_setup_screen(missing: list[str]) -> None:
             [
                 "SNOWFLAKE_ACCOUNT=your-account-id",
                 "SNOWFLAKE_USER=your-username",
+                "SNOWFLAKE_AUTHENTICATOR=externalbrowser",
                 "SNOWFLAKE_PASSWORD=your-password",
                 "SNOWFLAKE_ROLE=your-role",
                 "SNOWFLAKE_WAREHOUSE=your-warehouse",

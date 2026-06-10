@@ -97,6 +97,8 @@ On Windows, double-click the desktop shortcut named **Compass Ultra Web Intel** 
 
 The first shortcut launch creates `.env` and installs dependencies. If `.env` is still blank, the app opens to a setup checklist instead of trying to connect to Snowflake. The repo includes `.streamlit/config.toml` to keep Streamlit's built-in toolbar minimal for local use.
 
+If Snowflake browser login is not enabled for the account, run `Set-SnowflakePassword.ps1` locally. It prompts for the Snowflake password and writes it only to `.env`.
+
 ## Useful Queries
 
 Search the app for:

@@ -31,12 +31,14 @@ def main() -> int:
 
     missing = [name for name in REQUIRED if not os.getenv(name)]
 
+    authenticator = os.getenv("SNOWFLAKE_AUTHENTICATOR", "").lower()
     has_password = bool(os.getenv("SNOWFLAKE_PASSWORD"))
     private_key_path = os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH")
     has_private_key = bool(private_key_path)
+    has_browser_auth = authenticator in {"externalbrowser", "oauth", "programmatic_access_token"}
 
-    if not has_password and not has_private_key:
-        missing.append("SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_PATH")
+    if not has_password and not has_private_key and not has_browser_auth:
+        missing.append("SNOWFLAKE_PASSWORD, SNOWFLAKE_PRIVATE_KEY_PATH, or SNOWFLAKE_AUTHENTICATOR=externalbrowser")
 
     if private_key_path and not Path(private_key_path).expanduser().exists():
         print(f"SNOWFLAKE_PRIVATE_KEY_PATH does not exist: {private_key_path}", file=sys.stderr)

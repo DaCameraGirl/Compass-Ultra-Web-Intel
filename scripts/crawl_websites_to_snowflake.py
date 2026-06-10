@@ -19,6 +19,10 @@ import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from data_ops.settings import Settings
 from data_ops.snowflake import connect, qualified_name, quote_ident
 
@@ -300,8 +304,12 @@ def require_snowflake(settings: Settings) -> None:
         }.items()
         if not value
     ]
-    if not settings.snowflake_password and not settings.snowflake_private_key_path:
-        missing.append("SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_PATH")
+    if (
+        not settings.snowflake_password
+        and not settings.snowflake_private_key_path
+        and settings.snowflake_authenticator.lower() != "externalbrowser"
+    ):
+        missing.append("SNOWFLAKE_PASSWORD, SNOWFLAKE_PRIVATE_KEY_PATH, or SNOWFLAKE_AUTHENTICATOR=externalbrowser")
     if missing:
         raise RuntimeError("Missing required Snowflake configuration: " + ", ".join(missing))
 
@@ -341,4 +349,3 @@ def main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main(sys.argv[1:]))
-
