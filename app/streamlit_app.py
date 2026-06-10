@@ -42,6 +42,23 @@ def analytics_table(name: str) -> str:
     return qualified_name(settings.snowflake_database, settings.snowflake_analytics_schema, name)
 
 
+def missing_snowflake_settings(settings: Settings) -> list[str]:
+    values = {
+        "SNOWFLAKE_ACCOUNT": settings.snowflake_account,
+        "SNOWFLAKE_USER": settings.snowflake_user,
+        "SNOWFLAKE_ROLE": settings.snowflake_role,
+        "SNOWFLAKE_WAREHOUSE": settings.snowflake_warehouse,
+        "SNOWFLAKE_DATABASE": settings.snowflake_database,
+        "SNOWFLAKE_ANALYTICS_SCHEMA": settings.snowflake_analytics_schema,
+        "SNOWFLAKE_STAGING_SCHEMA": settings.snowflake_staging_schema,
+        "SNOWFLAKE_WEB_SCHEMA": settings.snowflake_web_schema,
+    }
+    missing = [key for key, value in values.items() if not value]
+    if not settings.snowflake_password and not settings.snowflake_private_key_path:
+        missing.append("SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_PATH")
+    return missing
+
+
 def search_pages(query: str, limit: int) -> pd.DataFrame:
     table = analytics_table("MART_WEBSITE_QUERY_INDEX")
     like = f"%{query.lower()}%"
@@ -153,6 +170,62 @@ def render_metric(label: str, value: object) -> None:
     st.markdown(f"<div class='metric'><span>{label}</span><strong>{value}</strong></div>", unsafe_allow_html=True)
 
 
+def render_setup_screen(missing: list[str]) -> None:
+    st.warning("The app started correctly, but Snowflake is not configured yet.")
+    st.write("The desktop shortcut created `.env` from `.env.example`. Add your real Snowflake values there, then run the pipeline.")
+    st.subheader("Missing Configuration")
+    for key in missing:
+        st.write(f"- `{key}`")
+    st.subheader("Minimum `.env` Values")
+    st.code(
+        "\n".join(
+            [
+                "SNOWFLAKE_ACCOUNT=your-account-id",
+                "SNOWFLAKE_USER=your-username",
+                "SNOWFLAKE_PASSWORD=your-password",
+                "SNOWFLAKE_ROLE=your-role",
+                "SNOWFLAKE_WAREHOUSE=your-warehouse",
+                "SNOWFLAKE_DATABASE=DATA_OPS",
+                "SNOWFLAKE_WEB_SCHEMA=RAW_WEBSITE_INTEL",
+                "SNOWFLAKE_STAGING_SCHEMA=STAGING",
+                "SNOWFLAKE_ANALYTICS_SCHEMA=ANALYTICS",
+            ]
+        ),
+        language="text",
+    )
+    st.subheader("After `.env` Is Filled")
+    st.code(
+        "\n".join(
+            [
+                "python scripts\\validate_environment.py",
+                "python scripts\\crawl_websites_to_snowflake.py --bootstrap-only",
+                "python scripts\\crawl_websites_to_snowflake.py --urls-file targets\\market_websites.txt --max-pages 25",
+                "$env:DBT_PROFILES_DIR = (Get-Location).Path",
+                "dbt build --select stg_web_pages fct_website_signals mart_prospect_accounts mart_website_query_index",
+            ]
+        ),
+        language="powershell",
+    )
+
+
+def render_data_not_ready(error: Exception) -> None:
+    st.warning("Snowflake is configured, but the website-intelligence tables are not ready yet.")
+    st.write("Run the crawl and dbt build commands, then refresh this page.")
+    st.code(
+        "\n".join(
+            [
+                "python scripts\\crawl_websites_to_snowflake.py --bootstrap-only",
+                "python scripts\\crawl_websites_to_snowflake.py --urls-file targets\\market_websites.txt --max-pages 25",
+                "$env:DBT_PROFILES_DIR = (Get-Location).Path",
+                "dbt build --select stg_web_pages fct_website_signals mart_prospect_accounts mart_website_query_index",
+            ]
+        ),
+        language="powershell",
+    )
+    with st.expander("Technical detail"):
+        st.code(str(error), language="text")
+
+
 def main() -> None:
     load_environment()
     st.set_page_config(page_title="Compass Ultra Website Intelligence", layout="wide")
@@ -198,8 +271,17 @@ def main() -> None:
     )
 
     st.title("Compass Ultra Website Intelligence")
-    accounts = load_accounts()
-    pages = search_pages("", 1)
+    settings = Settings.from_env()
+    missing = missing_snowflake_settings(settings)
+    if missing:
+        render_setup_screen(missing)
+        return
+
+    try:
+        accounts = load_accounts()
+    except Exception as exc:
+        render_data_not_ready(exc)
+        return
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -227,7 +309,7 @@ def main() -> None:
         for row in results.itertuples(index=False):
             st.markdown("<div class='result'>", unsafe_allow_html=True)
             st.markdown(f"[{row.title or row.url}]({row.url})")
-            st.caption(f"{row.domain} · score {row.compass_fit_score} · fetched {row.fetched_at}")
+            st.caption(f"{row.domain} - score {row.compass_fit_score} - fetched {row.fetched_at}")
             st.markdown(
                 f"<span class='pill'>flags {row.feature_flag_mentions}</span>"
                 f"<span class='pill'>release {row.release_process_mentions}</span>"

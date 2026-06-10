@@ -89,6 +89,8 @@ streamlit run app\streamlit_app.py
 
 On Windows, double-click the desktop shortcut named **Compass Ultra Web Intel** if it has been created. It runs `Start-CompassUltraWebIntel.ps1`.
 
+The first shortcut launch creates `.env` and installs dependencies. If `.env` is still blank, the app opens to a setup checklist instead of trying to connect to Snowflake. The repo includes `.streamlit/config.toml` to keep Streamlit's built-in toolbar minimal for local use.
+
 ## Useful Queries
 
 Search the app for:
@@ -139,4 +141,3 @@ Before a real store submission, host the app at a production HTTPS URL and set `
 ## More Detail
 
 See [docs/TECH_STACK.md](docs/TECH_STACK.md) for how GitHub language detection differs from the actual product stack.
-
