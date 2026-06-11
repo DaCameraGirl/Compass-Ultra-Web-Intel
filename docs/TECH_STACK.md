@@ -24,7 +24,7 @@ This is a data and intelligence product, so GitHub's language bar mostly reflect
 - YAML/TOML: dbt, Streamlit, and environment examples
 - Store wrapper output is marked generated or documentation where appropriate
 
-## Active MVP Path
+## Live Website Intelligence Path
 
 ```text
 Website URLs -> Python crawler -> Snowflake -> dbt marts -> Streamlit query app

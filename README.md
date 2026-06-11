@@ -66,7 +66,7 @@ The app uses one main input. That input drives both the live run and the focused
 
 ## 🧠 Signal Engine
 
-The active MVP scores websites for Compass Ultra fit using signals like:
+The active signal engine scores websites for Compass Ultra fit using signals like:
 
 - 🚩 feature flag mentions
 - 🚀 release, deploy, rollback, canary, and CAB language
