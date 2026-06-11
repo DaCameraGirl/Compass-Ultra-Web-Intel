@@ -278,6 +278,14 @@ def is_live_workspace_unlocked(access: AccessConfig) -> bool:
     return access.mode == "local" or bool(st.session_state.get("live_workspace_unlocked", False))
 
 
+def unlock_live_workspace(access: AccessConfig, code: str) -> bool:
+    if access.access_code and hmac.compare_digest(code, access.access_code):
+        st.session_state["live_workspace_unlocked"] = True
+        st.rerun()
+        return True
+    return False
+
+
 def render_access_panel(access: AccessConfig) -> bool:
     unlocked = is_live_workspace_unlocked(access)
     with st.sidebar:
@@ -296,17 +304,35 @@ def render_access_panel(access: AccessConfig) -> bool:
             return True
 
         if access.access_code:
-            code = st.text_input("Access code", type="password")
-            if st.button("Unlock live workspace", width="stretch"):
-                if hmac.compare_digest(code, access.access_code):
-                    st.session_state["live_workspace_unlocked"] = True
-                    st.rerun()
-                st.error("Access code did not match.")
+            code = st.text_input("Access code", type="password", key="sidebar_access_code")
+            if st.button("Unlock live workspace", width="stretch", key="sidebar_unlock_workspace"):
+                if not unlock_live_workspace(access, code):
+                    st.error("Access code did not match.")
         else:
             st.info("Public intelligence workspace is active. Add `COMPASS_ACCESS_CODE` to unlock live operations.")
 
         st.caption("Public visitors can explore the seeded intelligence workspace without triggering Snowflake, Tavily, dbt, crawler, or AI usage.")
         return False
+
+
+def render_live_unlock_panel(access: AccessConfig, live_unlocked: bool) -> None:
+    if live_unlocked or access.mode == "local":
+        return
+
+    with st.container(border=True):
+        st.markdown("<div class='live-kicker'>LIVE ANALYTICS ACCESS</div>", unsafe_allow_html=True)
+        if access.access_code:
+            st.write("Enter the deployment access code to run live discovery, crawling, Snowflake loading, dbt models, and refreshed comparisons.")
+            code = st.text_input("Access code", type="password", key="main_access_code")
+            if st.button("Unlock Live Analytics", type="primary", width="stretch", key="main_unlock_workspace"):
+                if not unlock_live_workspace(access, code):
+                    st.error("Access code did not match.")
+        else:
+            st.warning("Live analytics are not unlocked on this Streamlit deployment yet.")
+            st.caption(
+                "Add `COMPASS_ACCESS_CODE` in Streamlit Cloud Secrets, keep `COMPASS_PUBLIC_MODE=true`, "
+                "then reboot the app. The company runner will unlock after the code is entered."
+            )
 
 
 @st.cache_resource(show_spinner=False)
@@ -495,9 +521,11 @@ def render_live_company_runner(access: AccessConfig, can_run_live: bool) -> str:
             disabled=run_disabled,
         )
         if not can_run_live:
-            st.caption("Public mode keeps the full workspace visible while protecting Tavily, Snowflake, dbt, crawler, and AI usage.")
+            st.caption("Type a company to filter the seeded snapshot. Unlock live analytics to run discovery, crawl, Snowflake load, dbt build, and refreshed comparisons.")
         elif not access.live_runs_enabled:
             st.caption("Live runs are disabled by configuration. Existing Snowflake results remain available.")
+        else:
+            st.caption("Run status streams here while discovery, crawling, Snowflake loading, dbt models, and comparisons refresh.")
 
     if not run_clicked:
         return company_or_url
@@ -1180,6 +1208,7 @@ def main() -> None:
             return
 
     company_or_url = render_live_company_runner(access, can_run_live=use_live_data)
+    render_live_unlock_panel(access, live_unlocked)
     focus_query = result_focus_query(company_or_url)
 
     if use_live_data:
@@ -1235,7 +1264,7 @@ def main() -> None:
                 st.markdown("</div>", unsafe_allow_html=True)
 
     with right:
-        st.subheader("Domains")
+        st.subheader("Domain Comparison")
         st.dataframe(
             accounts,
             width="stretch",
