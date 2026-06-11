@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import os
+import hmac
 import subprocess
 import sys
+import time
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -35,12 +38,272 @@ SOCIAL_AND_DIRECTORY_DOMAINS = {
     "youtube.com",
 }
 
+PUBLIC_SNAPSHOT_ACCOUNTS = [
+    {
+        "domain": "launchdarkly.com",
+        "pages_crawled": 14,
+        "feature_flag_mentions": 42,
+        "release_process_mentions": 31,
+        "compliance_mentions": 11,
+        "workflow_mentions": 18,
+        "pain_mentions": 9,
+        "compass_fit_score": 94,
+        "fit_tier": "high",
+        "last_crawled_at": "2026-06-10 13:44:00",
+    },
+    {
+        "domain": "harness.io",
+        "pages_crawled": 12,
+        "feature_flag_mentions": 28,
+        "release_process_mentions": 39,
+        "compliance_mentions": 14,
+        "workflow_mentions": 21,
+        "pain_mentions": 8,
+        "compass_fit_score": 91,
+        "fit_tier": "high",
+        "last_crawled_at": "2026-06-10 13:47:00",
+    },
+    {
+        "domain": "gitlab.com",
+        "pages_crawled": 16,
+        "feature_flag_mentions": 18,
+        "release_process_mentions": 33,
+        "compliance_mentions": 16,
+        "workflow_mentions": 25,
+        "pain_mentions": 7,
+        "compass_fit_score": 87,
+        "fit_tier": "high",
+        "last_crawled_at": "2026-06-10 13:51:00",
+    },
+    {
+        "domain": "pagerduty.com",
+        "pages_crawled": 10,
+        "feature_flag_mentions": 6,
+        "release_process_mentions": 24,
+        "compliance_mentions": 13,
+        "workflow_mentions": 29,
+        "pain_mentions": 12,
+        "compass_fit_score": 82,
+        "fit_tier": "high",
+        "last_crawled_at": "2026-06-10 13:54:00",
+    },
+    {
+        "domain": "circleci.com",
+        "pages_crawled": 9,
+        "feature_flag_mentions": 7,
+        "release_process_mentions": 27,
+        "compliance_mentions": 8,
+        "workflow_mentions": 19,
+        "pain_mentions": 6,
+        "compass_fit_score": 78,
+        "fit_tier": "medium",
+        "last_crawled_at": "2026-06-10 13:57:00",
+    },
+    {
+        "domain": "atlassian.com",
+        "pages_crawled": 11,
+        "feature_flag_mentions": 9,
+        "release_process_mentions": 21,
+        "compliance_mentions": 18,
+        "workflow_mentions": 32,
+        "pain_mentions": 5,
+        "compass_fit_score": 76,
+        "fit_tier": "medium",
+        "last_crawled_at": "2026-06-10 14:00:00",
+    },
+]
+
+PUBLIC_SNAPSHOT_PAGES = [
+    {
+        "url": "https://launchdarkly.com/platform/feature-management/",
+        "domain": "launchdarkly.com",
+        "title": "Feature Management Platform",
+        "meta_description": "Feature flag control, targeting, experimentation, and progressive delivery.",
+        "compass_fit_score": 94,
+        "feature_flag_mentions": 16,
+        "release_process_mentions": 11,
+        "compliance_mentions": 4,
+        "workflow_mentions": 6,
+        "pain_mentions": 3,
+        "preview_text": "LaunchDarkly positions feature flags as release controls for progressive delivery, targeting, approvals, and rollback. The language shows strong overlap with stale flag ownership, change evidence, and production-release readiness workflows.",
+        "fetched_at": "2026-06-10 13:44:00",
+    },
+    {
+        "url": "https://www.harness.io/products/continuous-delivery",
+        "domain": "harness.io",
+        "title": "Continuous Delivery",
+        "meta_description": "Deployment pipelines, policy controls, approvals, rollback, and governance.",
+        "compass_fit_score": 91,
+        "feature_flag_mentions": 6,
+        "release_process_mentions": 18,
+        "compliance_mentions": 7,
+        "workflow_mentions": 8,
+        "pain_mentions": 2,
+        "preview_text": "Harness emphasizes deployment governance, rollback automation, release evidence, and approval flows. These are high-intent signals for a release-readiness product that connects feature flags, risk checks, and operational signoff.",
+        "fetched_at": "2026-06-10 13:47:00",
+    },
+    {
+        "url": "https://about.gitlab.com/solutions/continuous-software-compliance/",
+        "domain": "gitlab.com",
+        "title": "Continuous Software Compliance",
+        "meta_description": "Compliance, audit evidence, security policies, and DevSecOps controls.",
+        "compass_fit_score": 87,
+        "feature_flag_mentions": 5,
+        "release_process_mentions": 10,
+        "compliance_mentions": 12,
+        "workflow_mentions": 9,
+        "pain_mentions": 3,
+        "preview_text": "GitLab's compliance messaging connects software delivery with audit evidence, policy checks, and approval records. The strongest Compass Ultra angle is proving that a release passed the right controls before production exposure.",
+        "fetched_at": "2026-06-10 13:51:00",
+    },
+    {
+        "url": "https://www.pagerduty.com/use-cases/change-management/",
+        "domain": "pagerduty.com",
+        "title": "Change Management",
+        "meta_description": "Change events, incidents, workflows, and operational coordination.",
+        "compass_fit_score": 82,
+        "feature_flag_mentions": 1,
+        "release_process_mentions": 9,
+        "compliance_mentions": 6,
+        "workflow_mentions": 14,
+        "pain_mentions": 7,
+        "preview_text": "PagerDuty pages surface release risk, incident response, change visibility, and handoff pain. Those signals map to Compass Ultra's release gate, rollback readiness, and CAB-friendly evidence story.",
+        "fetched_at": "2026-06-10 13:54:00",
+    },
+    {
+        "url": "https://circleci.com/continuous-integration/",
+        "domain": "circleci.com",
+        "title": "Continuous Integration",
+        "meta_description": "CI/CD pipelines, tests, deployments, and automation.",
+        "compass_fit_score": 78,
+        "feature_flag_mentions": 2,
+        "release_process_mentions": 14,
+        "compliance_mentions": 3,
+        "workflow_mentions": 8,
+        "pain_mentions": 3,
+        "preview_text": "CircleCI's CI/CD material is rich in pipeline, deploy, test, and automation language. The relevant prospecting signal is the gap between pipeline success and business release approval.",
+        "fetched_at": "2026-06-10 13:57:00",
+    },
+    {
+        "url": "https://www.atlassian.com/software/jira/service-management/features/change-management",
+        "domain": "atlassian.com",
+        "title": "Change Management In Jira Service Management",
+        "meta_description": "Change requests, approvals, risk, and service-management workflow.",
+        "compass_fit_score": 76,
+        "feature_flag_mentions": 1,
+        "release_process_mentions": 8,
+        "compliance_mentions": 9,
+        "workflow_mentions": 16,
+        "pain_mentions": 4,
+        "preview_text": "Atlassian's change-management workflow language highlights approvals, risk context, linked work items, and service-impact controls. This is useful for positioning Compass Ultra as a release-readiness layer above implementation tools.",
+        "fetched_at": "2026-06-10 14:00:00",
+    },
+]
+
+
+@dataclass(frozen=True)
+class AccessConfig:
+    mode: str
+    access_code: str
+    live_runs_enabled: bool
+    max_pages_per_run: int
+    run_cooldown_seconds: int
+
 
 def load_environment() -> None:
     load_dotenv()
     env_file = os.getenv("COMPASS_BACKEND_ENV_FILE", "")
     if env_file:
         load_dotenv(Path(env_file).expanduser(), override=False)
+    try:
+        secrets = dict(st.secrets)
+    except Exception:
+        secrets = {}
+    for key, value in secrets.items():
+        if isinstance(value, dict):
+            continue
+        os.environ.setdefault(key, str(value))
+
+
+def env_value(key: str, default: str = "") -> str:
+    return os.getenv(key, default).strip()
+
+
+def env_bool(key: str, default: bool) -> bool:
+    value = env_value(key)
+    if not value:
+        return default
+    return value.lower() in {"1", "true", "yes", "on"}
+
+
+def env_int(key: str, default: int, minimum: int, maximum: int) -> int:
+    try:
+        value = int(env_value(key, str(default)))
+    except ValueError:
+        value = default
+    return max(minimum, min(maximum, value))
+
+
+def default_access_mode() -> str:
+    return "local" if (ROOT / ".env").exists() else "public"
+
+
+def access_config_from_env() -> AccessConfig:
+    if env_bool("COMPASS_PUBLIC_MODE", False):
+        raw_mode = "public"
+    else:
+        raw_mode = env_value("COMPASS_ACCESS_MODE", default_access_mode()).lower()
+    mode = {
+        "readonly": "public",
+        "read-only": "public",
+        "read_only": "public",
+        "protected": "private",
+        "locked": "private",
+    }.get(raw_mode, raw_mode)
+    if mode not in {"local", "public", "private"}:
+        mode = "public"
+    return AccessConfig(
+        mode=mode,
+        access_code=env_value("COMPASS_ACCESS_CODE"),
+        live_runs_enabled=env_bool("COMPASS_LIVE_RUNS_ENABLED", True),
+        max_pages_per_run=env_int("COMPASS_MAX_PAGES_PER_RUN", 25, 1, 25),
+        run_cooldown_seconds=env_int("COMPASS_RUN_COOLDOWN_SECONDS", 300, 0, 86400),
+    )
+
+
+def is_live_workspace_unlocked(access: AccessConfig) -> bool:
+    return access.mode == "local" or bool(st.session_state.get("live_workspace_unlocked", False))
+
+
+def render_access_panel(access: AccessConfig) -> bool:
+    unlocked = is_live_workspace_unlocked(access)
+    with st.sidebar:
+        st.markdown("### Access")
+        if access.mode == "local":
+            st.success("Trusted local workspace")
+            st.caption("Live Snowflake, Tavily, dbt, and AI actions are available when keys are configured.")
+            return True
+
+        if unlocked:
+            st.success("Live workspace unlocked")
+            st.caption("Protected Snowflake, Tavily, dbt, and AI actions can run in this session.")
+            if st.button("Lock workspace", width="stretch"):
+                st.session_state["live_workspace_unlocked"] = False
+                st.rerun()
+            return True
+
+        if access.access_code:
+            code = st.text_input("Access code", type="password")
+            if st.button("Unlock live workspace", width="stretch"):
+                if hmac.compare_digest(code, access.access_code):
+                    st.session_state["live_workspace_unlocked"] = True
+                    st.rerun()
+                st.error("Access code did not match.")
+        else:
+            st.info("Public intelligence workspace is active. Add `COMPASS_ACCESS_CODE` to unlock live operations.")
+
+        st.caption("Public visitors can explore the seeded intelligence workspace without triggering Snowflake, Tavily, dbt, crawler, or AI usage.")
+        return False
 
 
 @st.cache_resource(show_spinner=False)
@@ -198,7 +461,14 @@ def run_company_refresh(source_url: str, max_pages: int, log_box) -> None:
         run_logged_command(command, env, log_lines, log_box)
 
 
-def render_live_company_runner() -> str:
+def live_run_cooldown_remaining(access: AccessConfig) -> int:
+    if access.run_cooldown_seconds <= 0:
+        return 0
+    last_started_at = float(st.session_state.get("last_live_run_started_at", 0.0))
+    return max(0, int(access.run_cooldown_seconds - (time.time() - last_started_at)))
+
+
+def render_live_company_runner(access: AccessConfig, can_run_live: bool) -> str:
     with st.container(border=True):
         st.markdown("<div class='live-kicker'>LIVE COMPANY RUN</div>", unsafe_allow_html=True)
         company_or_url = st.text_input(
@@ -206,13 +476,35 @@ def render_live_company_runner() -> str:
             value=st.session_state.get("company_or_url", ""),
             placeholder="LaunchDarkly, Snowflake, https://example.com",
         )
-        max_pages = st.slider("Pages per discovered site", min_value=1, max_value=25, value=5, step=1)
-        run_clicked = st.button("Run Analysis", type="primary", use_container_width=True)
+        max_pages = st.slider(
+            "Pages per discovered site",
+            min_value=1,
+            max_value=access.max_pages_per_run,
+            value=min(5, access.max_pages_per_run),
+            step=1,
+        )
+        run_disabled = not can_run_live or not access.live_runs_enabled
+        button_label = "Run Analysis" if can_run_live else "Live Analysis Protected"
+        run_clicked = st.button(
+            button_label,
+            type="primary",
+            width="stretch",
+            disabled=run_disabled,
+        )
+        if not can_run_live:
+            st.caption("Public mode keeps the full workspace visible while protecting Tavily, Snowflake, dbt, crawler, and AI usage.")
+        elif not access.live_runs_enabled:
+            st.caption("Live runs are disabled by configuration. Existing Snowflake results remain available.")
 
     if not run_clicked:
         return company_or_url
 
     st.session_state["company_or_url"] = company_or_url
+    cooldown_remaining = live_run_cooldown_remaining(access)
+    if cooldown_remaining > 0:
+        st.warning(f"Live runs are rate-limited for this session. Try again in {cooldown_remaining} seconds.")
+        return company_or_url
+
     try:
         source_url, source_label = resolve_company_source(company_or_url)
     except Exception as exc:
@@ -227,6 +519,7 @@ def render_live_company_runner() -> str:
         st.caption(source_label)
         log_box = st.empty()
         try:
+            st.session_state["last_live_run_started_at"] = time.time()
             run_company_refresh(source_url, max_pages, log_box)
         except Exception as exc:
             status.update(label="Analysis failed", state="error", expanded=True)
@@ -303,6 +596,24 @@ def search_pages(query: str, limit: int) -> pd.DataFrame:
         limit %s
         """,
         (limit,),
+    )
+
+
+def load_public_accounts() -> pd.DataFrame:
+    return pd.DataFrame(PUBLIC_SNAPSHOT_ACCOUNTS)
+
+
+def search_public_pages(query: str, limit: int) -> pd.DataFrame:
+    pages = pd.DataFrame(PUBLIC_SNAPSHOT_PAGES)
+    if query.strip():
+        needle = query.lower()
+        searchable_columns = ["url", "domain", "title", "meta_description", "preview_text"]
+        search_text = pages[searchable_columns].fillna("").agg(" ".join, axis=1).str.lower()
+        pages = pages[search_text.str.contains(needle, regex=False)]
+    return (
+        pages.sort_values(["compass_fit_score", "fetched_at"], ascending=[False, False])
+        .head(limit)
+        .reset_index(drop=True)
     )
 
 
@@ -429,6 +740,84 @@ def answer_with_llm(question: str, pages: pd.DataFrame) -> str | None:
 
 def render_metric(label: str, value: object) -> None:
     st.markdown(f"<div class='metric'><span>{label}</span><strong>{value}</strong></div>", unsafe_allow_html=True)
+
+
+def render_operating_mode_banner(access: AccessConfig, live_unlocked: bool) -> None:
+    if access.mode == "local":
+        title = "Connected local workspace"
+        detail = "Live discovery, crawling, Snowflake loading, dbt builds, and sourced AI summaries are available when keys are configured."
+        badge = "Trusted local run"
+    elif live_unlocked:
+        title = "Protected live workspace"
+        detail = "Access is unlocked for this session. Usage limits remain active before Tavily, Snowflake, crawler, dbt, or AI calls run."
+        badge = "Live operations enabled"
+    else:
+        title = "Public intelligence workspace"
+        detail = "The product experience is available against a seeded signal snapshot. Expensive live operations stay behind access control."
+        badge = "External usage blocked"
+    st.markdown(
+        f"""
+        <div class="mode-banner">
+          <div>
+            <strong>{title}</strong>
+            <span>{detail}</span>
+          </div>
+          <em>{badge}</em>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_pipeline_overview(live_unlocked: bool) -> None:
+    status = "active" if live_unlocked else "protected"
+    st.markdown(
+        f"""
+        <div class="pipeline-strip">
+          <div><strong>Input</strong><span>Company or website</span></div>
+          <div><strong>Discovery</strong><span>Tavily + crawler</span></div>
+          <div><strong>Warehouse</strong><span>Snowflake raw pages</span></div>
+          <div><strong>Models</strong><span>dbt staging + marts</span></div>
+          <div><strong>Intel</strong><span>Ranked release signals</span></div>
+          <em>{status}</em>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_public_briefing(focus_query: str, pages: pd.DataFrame) -> None:
+    if pages.empty:
+        return
+    top = pages.iloc[0]
+    subject = focus_query or "the indexed market"
+    st.markdown(
+        f"""
+        <div class="briefing">
+          <span>INTELLIGENCE BRIEF</span>
+          <strong>{subject}</strong>
+          <p>
+            Highest-fit signal in this view: {top["domain"]} with a score of {int(top["compass_fit_score"])}.
+            The current evidence concentrates around release control, approval workflow, compliance language,
+            rollback readiness, and operational handoffs.
+          </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_private_access_screen() -> None:
+    st.markdown(
+        """
+        <div class="access-hero">
+          <span>PROTECTED WORKSPACE</span>
+          <strong>Compass Ultra Website Intelligence</strong>
+          <p>Enter the access code in the sidebar to open the live Snowflake, Tavily, crawler, dbt, and AI workspace.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_setup_screen(missing: list[str]) -> None:
@@ -571,6 +960,14 @@ def main() -> None:
           border-color: #0f473c !important;
           color: #ffffff !important;
         }
+        .stButton > button:disabled,
+        .stButton > button:disabled:hover {
+          background: #eef3ef !important;
+          border-color: #b7c4bb !important;
+          color: #3f5248 !important;
+          opacity: 1 !important;
+          cursor: not-allowed !important;
+        }
         .metric {
           border: 1px solid #d0d9d1;
           background: #ffffff;
@@ -617,6 +1014,102 @@ def main() -> None:
           font-size: .9rem;
           margin: 4px 0 12px;
         }
+        .mode-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          border: 1px solid #d2d6cc;
+          background: linear-gradient(135deg, #fbfcf7 0%, #eef5f1 55%, #f8efe4 100%);
+          border-radius: 8px;
+          padding: 16px 18px;
+          margin: 0 0 18px;
+          box-shadow: 0 10px 24px rgba(20, 45, 34, .06);
+        }
+        .mode-banner strong,
+        .access-hero strong,
+        .briefing strong {
+          display: block;
+          color: #101713;
+          font-size: 1.08rem;
+          line-height: 1.25;
+        }
+        .mode-banner span,
+        .pipeline-strip span,
+        .briefing p,
+        .access-hero p {
+          display: block;
+          color: #435248;
+          font-size: .92rem;
+          line-height: 1.48;
+          margin-top: 3px;
+        }
+        .mode-banner em {
+          flex: 0 0 auto;
+          border: 1px solid #b8a47f;
+          background: #fff9ec;
+          color: #72450b;
+          border-radius: 999px;
+          padding: 6px 10px;
+          font-style: normal;
+          font-weight: 800;
+          font-size: .78rem;
+        }
+        .pipeline-strip {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(130px, 1fr)) auto;
+          align-items: stretch;
+          gap: 8px;
+          margin: 6px 0 18px;
+        }
+        .pipeline-strip div {
+          border: 1px solid #d0d9d1;
+          border-radius: 8px;
+          background: #ffffff;
+          padding: 12px 13px;
+          min-height: 78px;
+        }
+        .pipeline-strip strong {
+          display: block;
+          color: #10231b;
+          font-size: .78rem;
+          text-transform: uppercase;
+          font-weight: 850;
+        }
+        .pipeline-strip em {
+          align-self: center;
+          color: #ffffff;
+          background: #244f75;
+          border-radius: 8px;
+          padding: 12px 14px;
+          font-style: normal;
+          font-weight: 850;
+          text-transform: uppercase;
+          font-size: .78rem;
+          text-align: center;
+        }
+        .briefing {
+          border-left: 4px solid #244f75;
+          background: #f7fafc;
+          padding: 14px 16px;
+          margin: 0 0 16px;
+        }
+        .briefing span,
+        .access-hero span {
+          display: block;
+          color: #7a4b11;
+          font-size: .74rem;
+          font-weight: 850;
+          text-transform: uppercase;
+          margin-bottom: 5px;
+        }
+        .access-hero {
+          border: 1px solid #d0d9d1;
+          border-radius: 8px;
+          background: #fbfcf7;
+          padding: 28px;
+          margin-top: 18px;
+        }
         .result {
           border-top: 1px solid #d3ddd5;
           padding: 18px 0;
@@ -648,26 +1141,52 @@ def main() -> None:
           border-radius: 7px;
           overflow: hidden;
         }
+        @media (max-width: 860px) {
+          .mode-banner {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+          .pipeline-strip {
+            grid-template-columns: 1fr;
+          }
+          .pipeline-strip em {
+            width: 100%;
+          }
+        }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
     st.title("Compass Ultra Website Intelligence")
-    settings = Settings.from_env()
-    missing = missing_snowflake_settings(settings)
-    if missing:
-        render_setup_screen(missing)
+    access = access_config_from_env()
+    live_unlocked = render_access_panel(access)
+    render_operating_mode_banner(access, live_unlocked)
+    render_pipeline_overview(live_unlocked)
+
+    if access.mode == "private" and not live_unlocked:
+        render_private_access_screen()
         return
 
-    company_or_url = render_live_company_runner()
+    use_live_data = live_unlocked
+    if use_live_data:
+        settings = Settings.from_env()
+        missing = missing_snowflake_settings(settings)
+        if missing:
+            render_setup_screen(missing)
+            return
+
+    company_or_url = render_live_company_runner(access, can_run_live=use_live_data)
     focus_query = result_focus_query(company_or_url)
 
-    try:
-        accounts = load_accounts()
-    except Exception as exc:
-        render_data_not_ready(exc)
-        return
+    if use_live_data:
+        try:
+            accounts = load_accounts()
+        except Exception as exc:
+            render_data_not_ready(exc)
+            return
+    else:
+        accounts = load_public_accounts()
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -684,8 +1203,8 @@ def main() -> None:
         limit = st.slider("Results", min_value=5, max_value=50, value=15, step=5)
         if focus_query:
             st.markdown(f"<div class='focus-note'>Showing matches for <strong>{focus_query}</strong></div>", unsafe_allow_html=True)
-        results = search_pages(focus_query, limit)
-        if focus_query and has_llm_key():
+        results = search_pages(focus_query, limit) if use_live_data else search_public_pages(focus_query, limit)
+        if use_live_data and focus_query and has_llm_key():
             with st.spinner("Answering from retrieved pages"):
                 try:
                     answer = answer_with_llm(f"Summarize the strongest website intelligence signals for {focus_query}.", results)
@@ -693,25 +1212,30 @@ def main() -> None:
                         st.markdown(answer)
                 except Exception as exc:
                     st.warning(f"AI answer failed: {exc}")
-        for row in results.itertuples(index=False):
-            st.markdown("<div class='result'>", unsafe_allow_html=True)
-            st.markdown(f"[{row.title or row.url}]({row.url})")
-            st.caption(f"{row.domain} - score {row.compass_fit_score} - fetched {row.fetched_at}")
-            st.markdown(
-                f"<span class='pill'>flags {row.feature_flag_mentions}</span>"
-                f"<span class='pill'>release {row.release_process_mentions}</span>"
-                f"<span class='pill'>compliance {row.compliance_mentions}</span>"
-                f"<span class='pill'>pain {row.pain_mentions}</span>",
-                unsafe_allow_html=True,
-            )
-            st.write(str(row.preview_text)[:700])
-            st.markdown("</div>", unsafe_allow_html=True)
+        if not use_live_data:
+            render_public_briefing(focus_query, results)
+        if results.empty:
+            st.info("No indexed pages matched this focus. Try a broader company, domain, or release-readiness term.")
+        else:
+            for row in results.itertuples(index=False):
+                st.markdown("<div class='result'>", unsafe_allow_html=True)
+                st.markdown(f"[{row.title or row.url}]({row.url})")
+                st.caption(f"{row.domain} - score {row.compass_fit_score} - fetched {row.fetched_at}")
+                st.markdown(
+                    f"<span class='pill'>flags {row.feature_flag_mentions}</span>"
+                    f"<span class='pill'>release {row.release_process_mentions}</span>"
+                    f"<span class='pill'>compliance {row.compliance_mentions}</span>"
+                    f"<span class='pill'>pain {row.pain_mentions}</span>",
+                    unsafe_allow_html=True,
+                )
+                st.write(str(row.preview_text)[:700])
+                st.markdown("</div>", unsafe_allow_html=True)
 
     with right:
         st.subheader("Domains")
         st.dataframe(
             accounts,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 "domain": "Domain",

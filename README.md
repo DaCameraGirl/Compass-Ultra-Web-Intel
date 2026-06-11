@@ -64,6 +64,8 @@ In the app:
 
 The app uses one main input. That input drives both the live run and the focused results below it.
 
+Compass Ultra Web Intel is a public data-engineering portfolio project that turns company web presence into structured market-intelligence signals using Python crawling, Snowflake loading, dbt modeling, and a Streamlit analytics layer. Public demo mode uses seeded data, while approved users can unlock live workflows through guarded access controls.
+
 ---
 
 ## 🧠 Signal Engine
@@ -160,6 +162,7 @@ SNOWFLAKE_PASSWORD
 SNOWFLAKE_ROLE
 SNOWFLAKE_WAREHOUSE
 SNOWFLAKE_DATABASE
+SNOWFLAKE_SCHEMA
 ```
 
 Optional AI answer providers:
@@ -169,6 +172,22 @@ ANTHROPIC_API_KEY
 OPENROUTER_API_KEY
 OPENAI_API_KEY
 DEEPSEEK_API_KEY
+```
+
+Public deployment guardrails:
+
+```text
+COMPASS_PUBLIC_MODE=true
+COMPASS_ACCESS_CODE=choose-a-private-access-code
+COMPASS_LIVE_RUNS_ENABLED=true
+COMPASS_MAX_PAGES_PER_RUN=5
+COMPASS_RUN_COOLDOWN_SECONDS=900
+```
+
+Local trusted runs can use:
+
+```text
+COMPASS_ACCESS_MODE=local
 ```
 
 Optional later sources:
@@ -240,10 +259,11 @@ Best free path:
 
 1. Push this repo to GitHub.
 2. Deploy it on **Streamlit Community Cloud**.
-3. Add secrets in Streamlit's secrets manager, not in GitHub.
-4. Share the Streamlit app URL.
+3. Choose repo `DaCameraGirl/compass-ultra-web-intel`, branch `main`, and main file path `app/streamlit_app.py`.
+4. Add secrets in Streamlit's secrets manager, not in GitHub.
+5. Share the Streamlit app URL.
 
-Before sharing publicly, add access control or disable unrestricted live runs so visitors cannot trigger Tavily, Snowflake, crawler, or AI usage without permission.
+For a polished public version, use Streamlit secrets for the keys above plus the public guardrail settings. Unauthenticated visitors see the seeded intelligence workspace and full product flow; approved users can unlock the live Snowflake, Tavily, crawler, dbt, and AI workflow with the access code.
 
 ---
 

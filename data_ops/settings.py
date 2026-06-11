@@ -31,6 +31,7 @@ class Settings:
     @classmethod
     def from_env(cls) -> "Settings":
         load_dotenv()
+        snowflake_schema = os.getenv("SNOWFLAKE_SCHEMA", "")
         return cls(
             fivetran_api_key=os.getenv("FIVETRAN_API_KEY", ""),
             fivetran_api_secret=os.getenv("FIVETRAN_API_SECRET", ""),
@@ -50,5 +51,5 @@ class Settings:
             snowflake_vercel_schema=os.getenv("SNOWFLAKE_VERCEL_SCHEMA", "RAW_VERCEL"),
             snowflake_web_schema=os.getenv("SNOWFLAKE_WEB_SCHEMA", "RAW_WEBSITE_INTEL"),
             snowflake_staging_schema=os.getenv("SNOWFLAKE_STAGING_SCHEMA", "STAGING"),
-            snowflake_analytics_schema=os.getenv("SNOWFLAKE_ANALYTICS_SCHEMA", "ANALYTICS"),
+            snowflake_analytics_schema=os.getenv("SNOWFLAKE_ANALYTICS_SCHEMA") or snowflake_schema or "ANALYTICS",
         )
