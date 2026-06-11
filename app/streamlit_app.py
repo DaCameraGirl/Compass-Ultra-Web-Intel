@@ -14,11 +14,14 @@ import requests
 import streamlit as st
 from dotenv import load_dotenv
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from data_ops.settings import Settings
 from data_ops.snowflake import connect, qualified_name
 
 
-ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_COMPASS_FEED = Path(r"C:\Users\enter\Compass-Ultra\app\public\crawler-feed.json")
 SOCIAL_AND_DIRECTORY_DOMAINS = {
     "angel.co",
