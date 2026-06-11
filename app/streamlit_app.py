@@ -497,7 +497,12 @@ def live_run_cooldown_remaining(access: AccessConfig) -> int:
     return max(0, int(access.run_cooldown_seconds - (time.time() - last_started_at)))
 
 
-def render_live_company_runner(access: AccessConfig, can_run_live: bool) -> str:
+def render_live_company_runner(
+    access: AccessConfig,
+    can_run_live: bool,
+    disabled_message: str | None = None,
+    disabled_button_label: str = "Live Analysis Protected",
+) -> str:
     with st.container(border=True):
         st.markdown("<div class='live-kicker'>LIVE COMPANY RUN</div>", unsafe_allow_html=True)
         company_or_url = st.text_input(
@@ -513,7 +518,7 @@ def render_live_company_runner(access: AccessConfig, can_run_live: bool) -> str:
             step=1,
         )
         run_disabled = not can_run_live or not access.live_runs_enabled
-        button_label = "Run Analysis" if can_run_live else "Live Analysis Protected"
+        button_label = "Run Analysis" if can_run_live else disabled_button_label
         run_clicked = st.button(
             button_label,
             type="primary",
@@ -521,7 +526,10 @@ def render_live_company_runner(access: AccessConfig, can_run_live: bool) -> str:
             disabled=run_disabled,
         )
         if not can_run_live:
-            st.caption("Type a company to filter the seeded snapshot. Unlock live analytics to run discovery, crawl, Snowflake load, dbt build, and refreshed comparisons.")
+            st.caption(
+                disabled_message
+                or "Type a company to filter the seeded snapshot. Unlock live analytics to run discovery, crawl, Snowflake load, dbt build, and refreshed comparisons."
+            )
         elif not access.live_runs_enabled:
             st.caption("Live runs are disabled by configuration. Existing Snowflake results remain available.")
         else:
@@ -578,6 +586,13 @@ def missing_snowflake_settings(settings: Settings) -> list[str]:
         and settings.snowflake_authenticator.lower() != "externalbrowser"
     ):
         missing.append("SNOWFLAKE_PASSWORD, SNOWFLAKE_PRIVATE_KEY_PATH, or SNOWFLAKE_AUTHENTICATOR=externalbrowser")
+    return missing
+
+
+def missing_live_run_settings(settings: Settings) -> list[str]:
+    missing = missing_snowflake_settings(settings)
+    if not os.getenv("TAVILY_API_KEY", ""):
+        missing.append("TAVILY_API_KEY")
     return missing
 
 
@@ -852,8 +867,10 @@ def render_private_access_screen() -> None:
 
 
 def render_setup_screen(missing: list[str]) -> None:
-    st.warning("The app started correctly, but Snowflake is not configured yet.")
-    st.write("The desktop shortcut created `.env` from `.env.example`. Add your real Snowflake values there, then run the pipeline.")
+    st.warning("Live workspace is unlocked, but live-run credentials are not configured yet.")
+    st.write(
+        "The company input and seeded comparisons remain available. Add the missing values in Streamlit Cloud Secrets to run real Tavily discovery, Snowflake loading, dbt models, and refreshed comparisons."
+    )
     st.subheader("Where To Get Snowflake")
     st.markdown(
         """
@@ -876,35 +893,35 @@ def render_setup_screen(missing: list[str]) -> None:
     st.subheader("Missing Configuration")
     for key in missing:
         st.write(f"- `{key}`")
-    st.subheader("Minimum `.env` Values")
+    st.subheader("Minimum Streamlit Secrets")
     st.code(
         "\n".join(
             [
-                "SNOWFLAKE_ACCOUNT=your-account-id",
-                "SNOWFLAKE_USER=your-username",
-                "SNOWFLAKE_AUTHENTICATOR=externalbrowser",
-                "SNOWFLAKE_PASSWORD=your-password",
-                "SNOWFLAKE_ROLE=your-role",
-                "SNOWFLAKE_WAREHOUSE=your-warehouse",
-                "SNOWFLAKE_DATABASE=DATA_OPS",
-                "SNOWFLAKE_WEB_SCHEMA=RAW_WEBSITE_INTEL",
-                "SNOWFLAKE_STAGING_SCHEMA=STAGING",
-                "SNOWFLAKE_ANALYTICS_SCHEMA=ANALYTICS",
-                "TAVILY_API_KEY=your-tavily-api-key",
+                'TAVILY_API_KEY = "your-tavily-api-key"',
+                'SNOWFLAKE_ACCOUNT = "your-account-id"',
+                'SNOWFLAKE_USER = "your-username"',
+                'SNOWFLAKE_PASSWORD = "your-password"',
+                'SNOWFLAKE_ROLE = "your-role"',
+                'SNOWFLAKE_WAREHOUSE = "your-warehouse"',
+                'SNOWFLAKE_DATABASE = "DATA_OPS"',
+                'SNOWFLAKE_WEB_SCHEMA = "RAW_WEBSITE_INTEL"',
+                'SNOWFLAKE_STAGING_SCHEMA = "STAGING"',
+                'SNOWFLAKE_ANALYTICS_SCHEMA = "ANALYTICS"',
+            ]
+        ),
+        language="toml",
+    )
+    st.subheader("After Secrets Are Saved")
+    st.code(
+        "\n".join(
+            [
+                "Manage app -> Settings -> Secrets -> Save",
+                "Manage app -> Reboot app",
+                "Enter the access code again",
+                "Run analysis from the company input above",
             ]
         ),
         language="text",
-    )
-    st.subheader("After `.env` Is Filled")
-    st.code(
-        "\n".join(
-            [
-                "python scripts\\validate_environment.py",
-                "python scripts\\crawl_websites_to_snowflake.py --bootstrap-only",
-                ".\\Run-WebsiteDiscovery.ps1 -SourceUrl https://www.compassultra.com/",
-            ]
-        ),
-        language="powershell",
     )
 
 
@@ -1199,24 +1216,40 @@ def main() -> None:
         render_private_access_screen()
         return
 
-    use_live_data = live_unlocked
-    if use_live_data:
+    missing_live_config: list[str] = []
+    if live_unlocked:
         settings = Settings.from_env()
-        missing = missing_snowflake_settings(settings)
-        if missing:
-            render_setup_screen(missing)
-            return
+        missing_live_config = missing_live_run_settings(settings)
 
-    company_or_url = render_live_company_runner(access, can_run_live=use_live_data)
+    live_ready = live_unlocked and not missing_live_config
+    disabled_message = None
+    disabled_button_label = "Live Analysis Protected"
+    if live_unlocked and missing_live_config:
+        disabled_button_label = "Configure Secrets to Run"
+        disabled_message = (
+            "Live workspace is unlocked. Add the missing Streamlit Secrets listed below to run discovery, crawl, "
+            "Snowflake load, dbt build, and refreshed comparisons. The input still filters seeded comparison data."
+        )
+
+    company_or_url = render_live_company_runner(
+        access,
+        can_run_live=live_ready,
+        disabled_message=disabled_message,
+        disabled_button_label=disabled_button_label,
+    )
     render_live_unlock_panel(access, live_unlocked)
+    if missing_live_config:
+        render_setup_screen(missing_live_config)
     focus_query = result_focus_query(company_or_url)
 
+    use_live_data = live_ready
     if use_live_data:
         try:
             accounts = load_accounts()
         except Exception as exc:
             render_data_not_ready(exc)
-            return
+            accounts = load_public_accounts()
+            use_live_data = False
     else:
         accounts = load_public_accounts()
 
