@@ -11,6 +11,7 @@ target/
 dbt_packages/
 *.log
 .streamlit/secrets.toml
+streamlit_secrets_template.toml
 .user.yml
 targets/discovered_websites.txt
 targets/discovery_results.json
