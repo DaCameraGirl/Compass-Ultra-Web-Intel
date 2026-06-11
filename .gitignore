@@ -12,6 +12,8 @@ dbt_packages/
 *.log
 .streamlit/secrets.toml
 streamlit_secrets_template.toml
+STREAMLIT_SECRETS_PASTE_THIS.toml
+PRIVATE_KEY_INVENTORY_DO_NOT_PASTE.txt
 .user.yml
 targets/discovered_websites.txt
 targets/discovery_results.json
