@@ -4,6 +4,8 @@
 
 ### Ship faster. Break nothing. Find the market before the market finds you.
 
+**Public project overview:** https://dacameragirl.github.io/compass-ultra-web-intel/
+
 ![Compass Ultra](https://img.shields.io/badge/Compass%20Ultra-Web%20Intel-07090E?style=for-the-badge)
 ![Streamlit](https://img.shields.io/badge/Streamlit-Live%20App-58A6FF?style=for-the-badge)
 ![Snowflake](https://img.shields.io/badge/Snowflake-Warehouse-29B5E8?style=for-the-badge)

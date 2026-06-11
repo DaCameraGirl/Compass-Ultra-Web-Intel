@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Compass Ultra Website Intelligence</title>
+    <meta
+      name="description"
+      content="Portfolio overview for Compass Ultra Website Intelligence: Python ingestion, Snowflake warehousing, dbt modeling, Streamlit analysis, Tavily discovery, and Fivetran-ready metadata workflows."
+    >
+    <meta property="og:title" content="Compass Ultra Website Intelligence">
+    <meta
+      property="og:description"
+      content="A company-intelligence data pipeline using Python, Snowflake, dbt, Streamlit, Tavily, and Fivetran-ready metadata ingestion."
+    >
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,650;9..144,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="site.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Compass Ultra Website Intelligence home">
+        <span class="brand-mark">CU</span>
+        <span>
+          <strong>Compass Ultra</strong>
+          <small>Website Intelligence</small>
+        </span>
+      </a>
+      <nav class="top-nav" aria-label="Page navigation">
+        <a href="#pipeline">Pipeline</a>
+        <a href="#evidence">Evidence</a>
+        <a href="#stack">Stack</a>
+        <a href="#run">Run</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero section">
+        <div class="hero-copy">
+          <p class="eyebrow">Data engineering portfolio project</p>
+          <h1>Company intelligence pipeline for release-readiness markets.</h1>
+          <p class="lede">
+            Compass Ultra Website Intelligence turns a company name or website into a data run:
+            discovery, crawling, Snowflake loading, dbt modeling, and Streamlit analysis.
+          </p>
+          <div class="hero-actions" aria-label="Primary links">
+            <a class="button button-primary" href="https://github.com/DaCameraGirl/compass-ultra-web-intel">View Source</a>
+            <a class="button button-secondary" href="#evidence">See Proof Points</a>
+          </div>
+        </div>
+
+        <div class="system-panel" aria-label="Pipeline summary">
+          <div class="panel-header">
+            <span>run_status</span>
+            <strong>ready_for_review</strong>
+          </div>
+          <div class="terminal-lines" aria-hidden="true">
+            <span><b>input</b> company or website</span>
+            <span><b>discover</b> Tavily related public pages</span>
+            <span><b>ingest</b> Python crawler and Snowflake loader</span>
+            <span><b>model</b> dbt staging, facts, marts, tests</span>
+            <span><b>analyze</b> Streamlit website signal workbench</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="proof-strip" aria-label="Technology proof points">
+        <span>Python ingestion</span>
+        <span>Snowflake warehouse</span>
+        <span>dbt Core + dbt Snowflake</span>
+        <span>Streamlit app</span>
+        <span>Tavily discovery</span>
+        <span>Fivetran API metadata</span>
+      </section>
+
+      <section id="pipeline" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Architecture</p>
+          <h2>From public website signals to modeled analytics tables.</h2>
+        </div>
+
+        <div class="pipeline-map" aria-label="Data pipeline map">
+          <article class="pipeline-step">
+            <span>01</span>
+            <h3>Company Input</h3>
+            <p>Accepts a company name or source website from the Streamlit interface.</p>
+          </article>
+          <article class="pipeline-step">
+            <span>02</span>
+            <h3>Tavily Discovery</h3>
+            <p>Finds related public pages and candidate sources for analysis.</p>
+          </article>
+          <article class="pipeline-step">
+            <span>03</span>
+            <h3>Python Ingestion</h3>
+            <p>Crawls pages, parses text, validates configuration, and prepares load records.</p>
+          </article>
+          <article class="pipeline-step">
+            <span>04</span>
+            <h3>Snowflake Raw Layer</h3>
+            <p>Stores website records in Snowflake for analytics and repeatable modeling.</p>
+          </article>
+          <article class="pipeline-step">
+            <span>05</span>
+            <h3>dbt Models</h3>
+            <p>Builds staging models, facts, marts, and tests with dbt-snowflake.</p>
+          </article>
+          <article class="pipeline-step">
+            <span>06</span>
+            <h3>Streamlit Analysis</h3>
+            <p>Displays domain tables, ranked website signals, and sourced summaries.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section section-dark">
+        <div class="section-heading">
+          <p class="eyebrow">Signal Engine</p>
+          <h2>Scores websites for Compass Ultra fit.</h2>
+        </div>
+        <div class="signal-grid">
+          <div>
+            <h3>Release language</h3>
+            <p>Feature flags, deploys, rollbacks, canaries, release gates, and CAB handoffs.</p>
+          </div>
+          <div>
+            <h3>Control language</h3>
+            <p>Audit, compliance, SOC 2, approval workflows, change management, and review evidence.</p>
+          </div>
+          <div>
+            <h3>Workflow language</h3>
+            <p>Slack, Jira, GitHub, CI/CD, runbooks, ownership, cleanup, and stale flag debt.</p>
+          </div>
+        </div>
+        <div class="output-tables" aria-label="Output tables">
+          <code>ANALYTICS.MART_WEBSITE_QUERY_INDEX</code>
+          <code>ANALYTICS.MART_PROSPECT_ACCOUNTS</code>
+          <code>ANALYTICS.FCT_WEBSITE_SIGNALS</code>
+        </div>
+      </section>
+
+      <section id="evidence" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Repository Evidence</p>
+          <h2>Files that show the hands-on implementation.</h2>
+        </div>
+        <div class="evidence-grid">
+          <a class="evidence-card" href="https://github.com/DaCameraGirl/compass-ultra-web-intel/blob/main/scripts/crawl_websites_to_snowflake.py">
+            <span>Python + Snowflake</span>
+            <h3>Website crawler and Snowflake loader</h3>
+            <p>Loads crawled page records into the raw warehouse layer and supports bootstrap setup.</p>
+          </a>
+          <a class="evidence-card" href="https://github.com/DaCameraGirl/compass-ultra-web-intel/blob/main/models/marts/fct_website_signals.sql">
+            <span>dbt SQL</span>
+            <h3>Website signal fact model</h3>
+            <p>Models release-readiness signals into an analytics fact table.</p>
+          </a>
+          <a class="evidence-card" href="https://github.com/DaCameraGirl/compass-ultra-web-intel/blob/main/models/marts/mart_prospect_accounts.sql">
+            <span>dbt mart</span>
+            <h3>Prospect account mart</h3>
+            <p>Turns raw page content and signal scoring into account-level analysis.</p>
+          </a>
+          <a class="evidence-card" href="https://github.com/DaCameraGirl/compass-ultra-web-intel/blob/main/scripts/fivetran_to_snowflake.py">
+            <span>Fivetran-ready</span>
+            <h3>Connector metadata ingestion</h3>
+            <p>Uses the Fivetran API pattern for connection and destination metadata when configured.</p>
+          </a>
+          <a class="evidence-card" href="https://github.com/DaCameraGirl/compass-ultra-web-intel/blob/main/app/streamlit_app.py">
+            <span>Streamlit</span>
+            <h3>Live analysis app</h3>
+            <p>Runs company lookup, discovery, crawl controls, logs, and refreshed result views.</p>
+          </a>
+          <a class="evidence-card" href="https://github.com/DaCameraGirl/compass-ultra-web-intel/blob/main/profiles.yml">
+            <span>dbt profile</span>
+            <h3>Snowflake profile configuration</h3>
+            <p>Defines dbt connection patterns for password, private key, and browser authentication.</p>
+          </a>
+        </div>
+      </section>
+
+      <section id="stack" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Stack</p>
+          <h2>What each layer is responsible for.</h2>
+        </div>
+        <div class="stack-table" role="table" aria-label="Technology stack">
+          <div role="row" class="table-head">
+            <span role="columnheader">Layer</span>
+            <span role="columnheader">Tool</span>
+            <span role="columnheader">Purpose</span>
+          </div>
+          <div role="row">
+            <span role="cell">App</span>
+            <span role="cell">Streamlit</span>
+            <span role="cell">Live company runner and query interface.</span>
+          </div>
+          <div role="row">
+            <span role="cell">Ingestion</span>
+            <span role="cell">Python</span>
+            <span role="cell">Discovery, crawling, parsing, validation, and Snowflake loading.</span>
+          </div>
+          <div role="row">
+            <span role="cell">Warehouse</span>
+            <span role="cell">Snowflake</span>
+            <span role="cell">Raw public pages and analytics outputs.</span>
+          </div>
+          <div role="row">
+            <span role="cell">Modeling</span>
+            <span role="cell">dbt Core + dbt Snowflake</span>
+            <span role="cell">Staging models, marts, and tests.</span>
+          </div>
+          <div role="row">
+            <span role="cell">Discovery</span>
+            <span role="cell">Tavily</span>
+            <span role="cell">Company lookup and related-site search.</span>
+          </div>
+          <div role="row">
+            <span role="cell">Optional ops</span>
+            <span role="cell">Fivetran, Stripe, Vercel, Compass backend</span>
+            <span role="cell">Operational metadata sources when configured.</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="run" class="section run-section">
+        <div class="section-heading">
+          <p class="eyebrow">Runtime</p>
+          <h2>GitHub Pages is the portfolio page. Streamlit runs the app.</h2>
+          <p>
+            This static page is safe to share publicly. The live workflow needs a Python runtime
+            plus secrets for Snowflake, Tavily, and optional AI providers, so it belongs on
+            Streamlit Community Cloud or another secure runtime.
+          </p>
+        </div>
+        <div class="command-grid">
+          <div>
+            <h3>Local setup</h3>
+            <pre><code>py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env</code></pre>
+          </div>
+          <div>
+            <h3>Run analysis app</h3>
+            <pre><code>python scripts\validate_environment.py
+python scripts\crawl_websites_to_snowflake.py --bootstrap-only
+streamlit run app\streamlit_app.py</code></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>Compass Ultra Website Intelligence</span>
+      <a href="https://github.com/DaCameraGirl/compass-ultra-web-intel">GitHub repository</a>
+    </footer>
+  </body>
+</html>
