@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import hmac
+import re
 import subprocess
 import sys
 import time
@@ -213,6 +214,15 @@ class AccessConfig:
     run_cooldown_seconds: int
 
 
+@dataclass(frozen=True)
+class SourceResolution:
+    url: str
+    label: str
+    confidence: int
+    needs_confirmation: bool
+    reason: str
+
+
 def load_environment() -> None:
     load_dotenv()
     env_file = os.getenv("COMPASS_BACKEND_ENV_FILE", "")
@@ -287,29 +297,41 @@ def unlock_live_workspace(access: AccessConfig, code: str) -> bool:
 
 
 def render_access_panel(access: AccessConfig) -> bool:
-    unlocked = is_live_workspace_unlocked(access)
-    with st.sidebar:
-        st.markdown("### Access")
-        if access.mode == "local":
-            st.success("Trusted local workspace")
-            st.caption("Live Snowflake, Tavily, dbt, and AI actions are available when keys are configured.")
-            return True
+    return is_live_workspace_unlocked(access)
 
-        if unlocked:
-            st.success("Live workspace unlocked")
-            st.caption("Protected Snowflake, Tavily, dbt, and AI actions can run in this session.")
-            if st.button("Lock workspace", width="stretch"):
+
+def render_access_status_panel(access: AccessConfig, live_unlocked: bool) -> None:
+    if access.mode == "local":
+        st.markdown(
+            """
+            <div class="access-strip">
+              <strong>Trusted local workspace</strong>
+              <span>Live Snowflake, Tavily, dbt, crawler, and AI actions are available when keys are configured.</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    if not live_unlocked:
+        return
+
+    with st.container(border=True):
+        left, right = st.columns([2.4, 1], vertical_alignment="center")
+        with left:
+            st.markdown(
+                """
+                <div class="access-strip inline">
+                  <strong>Live workspace unlocked</strong>
+                  <span>Protected Snowflake, Tavily, dbt, crawler, and AI actions can run in this session.</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with right:
+            if st.button("Lock Workspace", width="stretch", key="main_lock_workspace"):
                 st.session_state["live_workspace_unlocked"] = False
                 st.rerun()
-            return True
-
-        if access.access_code:
-            st.info("Use the access panel at the top of the main page to unlock live analytics.")
-        else:
-            st.info("Public intelligence workspace is active. Add `COMPASS_ACCESS_CODE` to unlock live operations.")
-
-        st.caption("Public visitors can explore the seeded intelligence workspace without triggering Snowflake, Tavily, dbt, crawler, or AI usage.")
-        return False
 
 
 def render_live_unlock_panel(access: AccessConfig, live_unlocked: bool) -> None:
@@ -394,12 +416,134 @@ def result_focus_query(company_or_url: str) -> str:
     return value
 
 
-def resolve_company_source(company_or_url: str) -> tuple[str, str]:
+GENERIC_COMPANY_TOKENS = {
+    "a",
+    "an",
+    "and",
+    "app",
+    "co",
+    "company",
+    "corp",
+    "corporation",
+    "for",
+    "inc",
+    "incorporated",
+    "io",
+    "llc",
+    "ltd",
+    "official",
+    "platform",
+    "software",
+    "the",
+}
+
+
+def company_tokens(value: str) -> list[str]:
+    return [
+        token
+        for token in re.findall(r"[a-z0-9]+", value.lower())
+        if token not in GENERIC_COMPANY_TOKENS
+    ]
+
+
+def company_slug(value: str) -> str:
+    return "".join(company_tokens(value))
+
+
+def domain_stem(domain: str) -> str:
+    first_label = domain.split(".")[0]
+    return re.sub(r"[^a-z0-9]", "", first_label.lower())
+
+
+def path_depth(url: str) -> int:
+    path = urlparse(url).path.strip("/")
+    return 0 if not path else len([part for part in path.split("/") if part])
+
+
+def excluded_domain(domain: str) -> bool:
+    return any(domain == excluded or domain.endswith("." + excluded) for excluded in SOCIAL_AND_DIRECTORY_DOMAINS)
+
+
+def score_source_candidate(company_or_url: str, result: dict) -> tuple[int, str]:
+    url = normalize_urlish(str(result.get("url", "")))
+    domain = root_domain(url)
+    stem = domain_stem(domain)
+    slug = company_slug(company_or_url)
+    tokens = company_tokens(company_or_url)
+    title = str(result.get("title", "")).lower()
+    depth = path_depth(url)
+    score = 0
+    reasons: list[str] = []
+
+    if slug and stem == slug:
+        score += 80
+        reasons.append("domain exactly matches the company name")
+    elif slug and (stem.startswith(slug) or slug.startswith(stem)):
+        score += 55
+        reasons.append("domain closely matches the company name")
+    elif tokens and all(token in stem for token in tokens):
+        score += 45
+        reasons.append("domain contains all company-name terms")
+    elif tokens and any(token in stem for token in tokens):
+        score += 15
+        reasons.append("domain contains one company-name term")
+
+    if depth == 0:
+        score += 20
+        reasons.append("candidate is a homepage")
+    elif depth == 1:
+        score -= 8
+        reasons.append("candidate is a content page")
+    else:
+        score -= 18
+        reasons.append("candidate is a deep content page")
+
+    if tokens and all(token in title for token in tokens):
+        score += 15
+        reasons.append("title contains all company-name terms")
+    if slug and slug in re.sub(r"[^a-z0-9]", "", url.lower()):
+        score += 10
+        reasons.append("URL contains the company-name slug")
+    if domain and excluded_domain(domain):
+        score -= 100
+        reasons.append("domain is an excluded social or directory source")
+
+    return score, "; ".join(reasons) or "best available search candidate"
+
+
+def source_resolution_from_result(company_or_url: str, result: dict) -> SourceResolution | None:
+    url = result.get("url")
+    if not url:
+        return None
+    normalized = normalize_urlish(str(url))
+    domain = root_domain(normalized)
+    if not domain or excluded_domain(domain):
+        return None
+    score, reason = score_source_candidate(company_or_url, result)
+    confidence = max(0, min(100, score))
+    needs_confirmation = confidence < 70
+    return SourceResolution(
+        url=normalized,
+        label=str(result.get("title") or domain),
+        confidence=confidence,
+        needs_confirmation=needs_confirmation,
+        reason=reason,
+    )
+
+
+def resolve_company_source(company_or_url: str) -> SourceResolution:
     value = company_or_url.strip()
     if not value:
         raise ValueError("Enter a company name or website.")
     if looks_like_url(value):
-        return normalize_urlish(value), "website"
+        normalized = normalize_urlish(value)
+        return SourceResolution(
+            url=normalized,
+            label=root_domain(normalized) or "website",
+            confidence=100,
+            needs_confirmation=False,
+            reason="user-entered website URL",
+        )
 
     api_key = os.getenv("TAVILY_API_KEY", "")
     if not api_key:
@@ -422,14 +566,13 @@ def resolve_company_source(company_or_url: str) -> tuple[str, str]:
         timeout=45,
     )
     response.raise_for_status()
+    candidates: list[SourceResolution] = []
     for result in response.json().get("results", []):
-        url = result.get("url")
-        if not url:
-            continue
-        normalized = normalize_urlish(url)
-        domain = root_domain(normalized)
-        if domain and not any(domain == excluded or domain.endswith("." + excluded) for excluded in SOCIAL_AND_DIRECTORY_DOMAINS):
-            return normalized, result.get("title") or domain
+        candidate = source_resolution_from_result(value, result)
+        if candidate:
+            candidates.append(candidate)
+    if candidates:
+        return sorted(candidates, key=lambda item: item.confidence, reverse=True)[0]
     raise RuntimeError(f"No official website found for {value}. Try entering the URL directly.")
 
 
@@ -498,6 +641,76 @@ def run_company_refresh(source_url: str, max_pages: int, log_box) -> None:
         run_logged_command(command, env, log_lines, log_box)
 
 
+def run_resolved_company_source(resolution: SourceResolution, max_pages: int) -> None:
+    with st.status(f"Running analysis from {root_domain(resolution.url)}", expanded=True) as status:
+        st.write(f"Resolved source: `{resolution.url}`")
+        st.caption(f"{resolution.label} - confidence {resolution.confidence}/100 - {resolution.reason}")
+        log_box = st.empty()
+        try:
+            st.session_state["last_live_run_started_at"] = time.time()
+            st.session_state.pop("pending_source_resolution", None)
+            run_company_refresh(resolution.url, max_pages, log_box)
+        except Exception as exc:
+            status.update(label="Analysis failed", state="error", expanded=True)
+            st.error(str(exc))
+            return
+        status.update(label="Analysis complete. Updated results are below.", state="complete", expanded=False)
+
+
+def pending_resolution_from_state(company_or_url: str) -> SourceResolution | None:
+    pending = st.session_state.get("pending_source_resolution")
+    if not isinstance(pending, dict) or pending.get("company_or_url") != company_or_url:
+        return None
+    return SourceResolution(
+        url=str(pending.get("url", "")),
+        label=str(pending.get("label", "")),
+        confidence=int(pending.get("confidence", 0)),
+        needs_confirmation=bool(pending.get("needs_confirmation", True)),
+        reason=str(pending.get("reason", "")),
+    )
+
+
+def store_pending_resolution(company_or_url: str, resolution: SourceResolution) -> None:
+    st.session_state["pending_source_resolution"] = {
+        "company_or_url": company_or_url,
+        "url": resolution.url,
+        "label": resolution.label,
+        "confidence": resolution.confidence,
+        "needs_confirmation": resolution.needs_confirmation,
+        "reason": resolution.reason,
+    }
+
+
+def render_source_confirmation(company_or_url: str, max_pages: int) -> bool:
+    resolution = pending_resolution_from_state(company_or_url)
+    if not resolution:
+        return False
+    with st.container(border=True):
+        st.markdown(
+            f"""
+            <div class="source-review">
+              <span>REVIEW SOURCE BEFORE RUNNING</span>
+              <strong>{root_domain(resolution.url) or resolution.url}</strong>
+              <p>{resolution.label}</p>
+              <p><a href="{resolution.url}" target="_blank">{resolution.url}</a></p>
+              <em>Confidence {resolution.confidence}/100 - {resolution.reason}</em>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        left, right = st.columns([1, 1], vertical_alignment="center")
+        with left:
+            confirmed = st.button("Run This Source", type="primary", width="stretch", key="confirm_source_run")
+        with right:
+            if st.button("Cancel Source", width="stretch", key="cancel_source_run"):
+                st.session_state.pop("pending_source_resolution", None)
+                st.rerun()
+        if confirmed:
+            run_resolved_company_source(resolution, max_pages)
+            return True
+    return False
+
+
 def live_run_cooldown_remaining(access: AccessConfig) -> int:
     if access.run_cooldown_seconds <= 0:
         return 0
@@ -543,17 +756,21 @@ def render_live_company_runner(
         else:
             st.caption("Run status streams here while discovery, crawling, Snowflake loading, dbt models, and comparisons refresh.")
 
+    if can_run_live:
+        render_source_confirmation(company_or_url, max_pages)
+
     if not run_clicked:
         return company_or_url
 
     st.session_state["company_or_url"] = company_or_url
+    st.session_state.pop("pending_source_resolution", None)
     cooldown_remaining = live_run_cooldown_remaining(access)
     if cooldown_remaining > 0:
         st.warning(f"Live runs are rate-limited for this session. Try again in {cooldown_remaining} seconds.")
         return company_or_url
 
     try:
-        source_url, source_label = resolve_company_source(company_or_url)
+        resolution = resolve_company_source(company_or_url)
     except Exception as exc:
         st.error(str(exc))
         return company_or_url
@@ -561,18 +778,12 @@ def render_live_company_runner(
         st.error("Live analysis needs TAVILY_API_KEY for discovery.")
         return company_or_url
 
-    with st.status(f"Running analysis from {root_domain(source_url)}", expanded=True) as status:
-        st.write(f"Resolved source: `{source_url}`")
-        st.caption(source_label)
-        log_box = st.empty()
-        try:
-            st.session_state["last_live_run_started_at"] = time.time()
-            run_company_refresh(source_url, max_pages, log_box)
-        except Exception as exc:
-            status.update(label="Analysis failed", state="error", expanded=True)
-            st.error(str(exc))
-            return company_or_url
-        status.update(label="Analysis complete. Updated results are below.", state="complete", expanded=False)
+    if resolution.needs_confirmation:
+        store_pending_resolution(company_or_url, resolution)
+        render_source_confirmation(company_or_url, max_pages)
+        return company_or_url
+
+    run_resolved_company_source(resolution, max_pages)
     return company_or_url
 
 
@@ -954,16 +1165,17 @@ def main() -> None:
     st.set_page_config(
         page_title="Compass Ultra Website Intelligence",
         layout="wide",
-        initial_sidebar_state="expanded",
+        initial_sidebar_state="collapsed",
     )
     st.markdown(
         """
         <style>
         html, body, .stApp, [class*="css"], button, input, textarea {
           font-family: "Segoe UI Variable", "Segoe UI", Aptos, Calibri, sans-serif !important;
+          font-size: 16px;
         }
         .stApp {
-          background: #ffffff;
+          background: #f3f6fa;
           color: #101713;
         }
         h1 {
@@ -980,6 +1192,7 @@ def main() -> None:
         }
         label, p, span, div {
           color: #17241d;
+          font-size: 1rem;
         }
         .block-container {
           padding-top: 2.6rem;
@@ -1017,6 +1230,12 @@ def main() -> None:
           font-weight: 800 !important;
           font-size: 1rem !important;
         }
+        .stButton > button *,
+        .stButton > button p,
+        .stButton > button span {
+          color: #ffffff !important;
+          font-weight: 800 !important;
+        }
         .stButton > button:hover {
           background: #193d5c !important;
           border-color: #193d5c !important;
@@ -1029,6 +1248,11 @@ def main() -> None:
           color: #3f5248 !important;
           opacity: 1 !important;
           cursor: not-allowed !important;
+        }
+        .stButton > button:disabled *,
+        .stButton > button:disabled p,
+        .stButton > button:disabled span {
+          color: #3f5248 !important;
         }
         .metric {
           border: 1px solid #d0d9d1;
@@ -1067,7 +1291,7 @@ def main() -> None:
         }
         .unlock-heading {
           border-left: 4px solid #244f75;
-          background: #ffffff;
+          background: #fdfefe;
           border-radius: 7px;
           padding: 14px 16px;
           margin-bottom: 10px;
@@ -1092,10 +1316,10 @@ def main() -> None:
           line-height: 1.45;
         }
         [data-testid="stVerticalBlockBorderWrapper"] {
-          background: #f8faf7 !important;
-          border: 1px solid #cddbd2 !important;
+          background: #fdfefe !important;
+          border: 1px solid #ced8e2 !important;
           border-radius: 8px !important;
-          box-shadow: 0 10px 26px rgba(20, 45, 34, .07);
+          box-shadow: 0 10px 26px rgba(36, 79, 117, .08);
         }
         .focus-note {
           color: #526158;
@@ -1107,8 +1331,8 @@ def main() -> None:
           align-items: center;
           justify-content: space-between;
           gap: 18px;
-          border: 1px solid #d2d6cc;
-          background: linear-gradient(135deg, #fbfcf7 0%, #eef5f1 55%, #f8efe4 100%);
+          border: 1px solid #cdd7e1;
+          background: linear-gradient(135deg, #fdfefe 0%, #edf4f9 58%, #f7f3ea 100%);
           border-radius: 8px;
           padding: 16px 18px;
           margin: 0 0 18px;
@@ -1151,9 +1375,9 @@ def main() -> None:
           margin: 6px 0 18px;
         }
         .pipeline-strip div {
-          border: 1px solid #d0d9d1;
+          border: 1px solid #ced8e2;
           border-radius: 8px;
-          background: #ffffff;
+          background: #fdfefe;
           padding: 12px 13px;
           min-height: 78px;
         }
@@ -1178,7 +1402,7 @@ def main() -> None:
         }
         .briefing {
           border-left: 4px solid #244f75;
-          background: #f7fafc;
+          background: #fdfefe;
           padding: 14px 16px;
           margin: 0 0 16px;
         }
@@ -1192,11 +1416,61 @@ def main() -> None:
           margin-bottom: 5px;
         }
         .access-hero {
-          border: 1px solid #d0d9d1;
+          border: 1px solid #ced8e2;
           border-radius: 8px;
-          background: #fbfcf7;
+          background: #fdfefe;
           padding: 28px;
           margin-top: 18px;
+        }
+        .access-strip strong {
+          display: block;
+          color: #101713;
+          font-size: 1.04rem;
+          line-height: 1.2;
+        }
+        .access-strip span {
+          display: block;
+          color: #435248;
+          line-height: 1.45;
+          margin-top: 3px;
+        }
+        .access-strip.inline {
+          padding: 2px 0;
+        }
+        .source-review {
+          border-left: 4px solid #7a4b11;
+          background: #fdfefe;
+          border-radius: 7px;
+          padding: 14px 16px;
+        }
+        .source-review span {
+          display: block;
+          color: #7a4b11;
+          font-size: .76rem;
+          font-weight: 850;
+          text-transform: uppercase;
+          margin-bottom: 5px;
+        }
+        .source-review strong {
+          display: block;
+          color: #101713;
+          font-size: 1.14rem;
+        }
+        .source-review p {
+          color: #435248;
+          margin: 4px 0;
+          line-height: 1.45;
+        }
+        .source-review a {
+          color: #244f75;
+          font-weight: 800;
+        }
+        .source-review em {
+          display: block;
+          color: #72450b;
+          font-style: normal;
+          font-weight: 750;
+          margin-top: 6px;
         }
         .result {
           border-top: 1px solid #d3ddd5;
@@ -1251,6 +1525,7 @@ def main() -> None:
     live_unlocked = render_access_panel(access)
     render_operating_mode_banner(access, live_unlocked)
     render_pipeline_overview(live_unlocked)
+    render_access_status_panel(access, live_unlocked)
 
     if access.mode == "private" and not live_unlocked:
         render_private_access_screen()
