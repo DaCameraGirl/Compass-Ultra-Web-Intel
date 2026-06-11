@@ -304,10 +304,7 @@ def render_access_panel(access: AccessConfig) -> bool:
             return True
 
         if access.access_code:
-            code = st.text_input("Access code", type="password", key="sidebar_access_code")
-            if st.button("Unlock live workspace", width="stretch", key="sidebar_unlock_workspace"):
-                if not unlock_live_workspace(access, code):
-                    st.error("Access code did not match.")
+            st.info("Use the access panel at the top of the main page to unlock live analytics.")
         else:
             st.info("Public intelligence workspace is active. Add `COMPASS_ACCESS_CODE` to unlock live operations.")
 
@@ -320,13 +317,24 @@ def render_live_unlock_panel(access: AccessConfig, live_unlocked: bool) -> None:
         return
 
     with st.container(border=True):
-        st.markdown("<div class='live-kicker'>LIVE ANALYTICS ACCESS</div>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div class="unlock-heading">
+              <span>LIVE ANALYTICS ACCESS</span>
+              <strong>Unlock the company runner</strong>
+              <p>Enter the access code here. You do not need the collapsed sidebar to use the live workspace.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         if access.access_code:
-            st.write("Enter the deployment access code to run live discovery, crawling, Snowflake loading, dbt models, and refreshed comparisons.")
-            code = st.text_input("Access code", type="password", key="main_access_code")
-            if st.button("Unlock Live Analytics", type="primary", width="stretch", key="main_unlock_workspace"):
-                if not unlock_live_workspace(access, code):
-                    st.error("Access code did not match.")
+            left, right = st.columns([1.8, 1], vertical_alignment="bottom")
+            with left:
+                code = st.text_input("Access code", type="password", key="main_access_code")
+            with right:
+                if st.button("Unlock Live Analytics", type="primary", width="stretch", key="main_unlock_workspace"):
+                    if not unlock_live_workspace(access, code):
+                        st.error("Access code did not match.")
         else:
             st.warning("Live analytics are not unlocked on this Streamlit deployment yet.")
             st.caption(
@@ -859,7 +867,7 @@ def render_private_access_screen() -> None:
         <div class="access-hero">
           <span>PROTECTED WORKSPACE</span>
           <strong>Compass Ultra Website Intelligence</strong>
-          <p>Enter the access code in the sidebar to open the live Snowflake, Tavily, crawler, dbt, and AI workspace.</p>
+          <p>Enter the access code in the main access panel to open the live Snowflake, Tavily, crawler, dbt, and AI workspace.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -943,7 +951,11 @@ def render_data_not_ready(error: Exception) -> None:
 
 def main() -> None:
     load_environment()
-    st.set_page_config(page_title="Compass Ultra Website Intelligence", layout="wide")
+    st.set_page_config(
+        page_title="Compass Ultra Website Intelligence",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
     st.markdown(
         """
         <style>
@@ -983,13 +995,15 @@ def main() -> None:
         [data-testid="stTextInput"] input {
           background: #ffffff !important;
           color: #101713 !important;
-          border: 1px solid #c7d1c9 !important;
+          border: 1px solid #b8c3cd !important;
           border-radius: 7px !important;
-          min-height: 44px;
+          min-height: 48px;
+          font-size: 1rem !important;
+          font-weight: 650 !important;
         }
         [data-testid="stTextInput"] input:focus {
-          border-color: #14584a !important;
-          box-shadow: 0 0 0 1px #14584a !important;
+          border-color: #244f75 !important;
+          box-shadow: 0 0 0 2px rgba(36, 79, 117, .18) !important;
         }
         [data-testid="stSlider"] {
           padding-top: 0;
@@ -997,15 +1011,15 @@ def main() -> None:
         .stButton > button {
           min-height: 50px;
           border-radius: 7px !important;
-          border: 1px solid #14584a !important;
-          background: #14584a !important;
+          border: 1px solid #244f75 !important;
+          background: #244f75 !important;
           color: #ffffff !important;
           font-weight: 800 !important;
           font-size: 1rem !important;
         }
         .stButton > button:hover {
-          background: #0f473c !important;
-          border-color: #0f473c !important;
+          background: #193d5c !important;
+          border-color: #193d5c !important;
           color: #ffffff !important;
         }
         .stButton > button:disabled,
@@ -1041,15 +1055,41 @@ def main() -> None:
         .live-kicker {
           display: inline-flex;
           align-items: center;
-          border: 1px solid #255d52;
+          border: 1px solid #244f75;
           border-radius: 7px;
           color: #ffffff;
-          background: #14584a;
+          background: #244f75;
           font-size: .76rem;
           font-weight: 800;
           letter-spacing: .04em;
           padding: 5px 9px;
           margin: 2px 0 10px;
+        }
+        .unlock-heading {
+          border-left: 4px solid #244f75;
+          background: #ffffff;
+          border-radius: 7px;
+          padding: 14px 16px;
+          margin-bottom: 10px;
+        }
+        .unlock-heading span {
+          display: block;
+          color: #7a4b11;
+          font-size: .76rem;
+          font-weight: 850;
+          text-transform: uppercase;
+          margin-bottom: 5px;
+        }
+        .unlock-heading strong {
+          display: block;
+          color: #101713;
+          font-size: 1.16rem;
+          line-height: 1.2;
+        }
+        .unlock-heading p {
+          color: #435248;
+          margin: 5px 0 0;
+          line-height: 1.45;
         }
         [data-testid="stVerticalBlockBorderWrapper"] {
           background: #f8faf7 !important;
@@ -1164,7 +1204,7 @@ def main() -> None:
           background: transparent;
         }
         .result a {
-          color: #14584a;
+          color: #244f75;
           text-decoration: none;
           font-weight: 800;
         }
@@ -1231,13 +1271,15 @@ def main() -> None:
             "Snowflake load, dbt build, and refreshed comparisons. The input still filters seeded comparison data."
         )
 
+    if not live_unlocked and access.mode != "local":
+        render_live_unlock_panel(access, live_unlocked)
+
     company_or_url = render_live_company_runner(
         access,
         can_run_live=live_ready,
         disabled_message=disabled_message,
         disabled_button_label=disabled_button_label,
     )
-    render_live_unlock_panel(access, live_unlocked)
     if missing_live_config:
         render_setup_screen(missing_live_config)
     focus_query = result_focus_query(company_or_url)
