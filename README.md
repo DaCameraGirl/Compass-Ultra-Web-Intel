@@ -39,7 +39,7 @@
 ---
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=%E2%9C%A8%20What%20This%20Is&fontSize=22&fontColor=e6edf3" width="720" alt="✨ What This Is" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=%E2%9C%A8%20What%20This%20Is&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="✨ What This Is" /></p>
 
 
 Compass Ultra Web Intel turns a company name or website into a live research run:
@@ -57,7 +57,7 @@ The product is built for the same Compass Ultra world as the main app: feature f
 ---
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=%F0%9F%96%A5%EF%B8%8F%20Live%20App%20Workflow&fontSize=22&fontColor=e6edf3" width="720" alt="🖥️ Live App Workflow" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=%F0%9F%96%A5%EF%B8%8F%20Live%20App%20Workflow&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="🖥️ Live App Workflow" /></p>
 
 
 Open the local app:
@@ -87,7 +87,7 @@ Compass Ultra Web Intel is a public data-engineering portfolio project that turn
 ---
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=%F0%9F%A7%A0%20Signal%20Engine&fontSize=22&fontColor=e6edf3" width="720" alt="🧠 Signal Engine" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=%F0%9F%A7%A0%20Signal%20Engine&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="🧠 Signal Engine" /></p>
 
 
 The active signal engine scores websites for Compass Ultra fit using signals like:
@@ -107,7 +107,7 @@ Output tables:
 ---
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=%F0%9F%A7%B1%20Stack&fontSize=22&fontColor=e6edf3" width="720" alt="🧱 Stack" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=%F0%9F%A7%B1%20Stack&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="🧱 Stack" /></p>
 
 
 | Layer | Tool | Job |
@@ -142,7 +142,7 @@ GitHub's language bar is tuned with `.gitattributes` so it emphasizes the real p
 ---
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=%E2%9A%A1%20Quick%20Start&fontSize=22&fontColor=e6edf3" width="720" alt="⚡ Quick Start" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=%E2%9A%A1%20Quick%20Start&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="⚡ Quick Start" /></p>
 
 
 ```powershell
@@ -175,7 +175,7 @@ streamlit run app\streamlit_app.py
 ---
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=%F0%9F%94%90%20Keys&fontSize=22&fontColor=e6edf3" width="720" alt="🔐 Keys" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=%F0%9F%94%90%20Keys&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="🔐 Keys" /></p>
 
 
 Required for the live workflow:
@@ -231,7 +231,7 @@ See [GET_KEYS.md](GET_KEYS.md) for account/key guidance.
 ---
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=%F0%9F%A7%AD%20One-Command%20Refresh&fontSize=22&fontColor=e6edf3" width="720" alt="🧭 One-Command Refresh" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=%F0%9F%A7%AD%20One-Command%20Refresh&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="🧭 One-Command Refresh" /></p>
 
 
 Run the default Compass Ultra seeded discovery:
@@ -251,7 +251,7 @@ That command discovers related websites, crawls them, loads Snowflake, rebuilds 
 ---
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=%F0%9F%A7%AA%20Manual%20Pipeline%20Commands&fontSize=22&fontColor=e6edf3" width="720" alt="🧪 Manual Pipeline Commands" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=%F0%9F%A7%AA%20Manual%20Pipeline%20Commands&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="🧪 Manual Pipeline Commands" /></p>
 
 
 Discover related websites:
@@ -282,7 +282,7 @@ dbt build --select stg_web_pages fct_website_signals mart_prospect_accounts mart
 ---
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=%F0%9F%8C%8D%20Hosting&fontSize=22&fontColor=e6edf3" width="720" alt="🌍 Hosting" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=%F0%9F%8C%8D%20Hosting&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="🌍 Hosting" /></p>
 
 
 GitHub Pages is not enough for this app because it only serves static files. Compass Ultra Web Intel needs a Python/Streamlit runtime plus secrets for Snowflake and Tavily.
@@ -300,7 +300,7 @@ For a polished public version, use Streamlit secrets for the keys above plus the
 ---
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=%F0%9F%A7%B0%20Optional%20Data%20Sources&fontSize=22&fontColor=e6edf3" width="720" alt="🧰 Optional Data Sources" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=%F0%9F%A7%B0%20Optional%20Data%20Sources&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="🧰 Optional Data Sources" /></p>
 
 
 These are wired for later, but not required for the active website-intelligence workflow:
@@ -319,7 +319,7 @@ The scripts read values locally and never print secret values.
 ---
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=%F0%9F%93%A6%20Store%20Packaging&fontSize=22&fontColor=e6edf3" width="720" alt="📦 Store Packaging" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=%F0%9F%93%A6%20Store%20Packaging&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="📦 Store Packaging" /></p>
 
 
 Store-wrapper scaffolding lives in `store/`.
@@ -333,7 +333,7 @@ Before a real store submission, host the app at a production HTTPS URL and set `
 ---
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=%F0%9F%93%9A%20More%20Detail&fontSize=22&fontColor=e6edf3" width="720" alt="📚 More Detail" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=%F0%9F%93%9A%20More%20Detail&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="📚 More Detail" /></p>
 
 
 - [GET_KEYS.md](GET_KEYS.md) - accounts and API key setup
